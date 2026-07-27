@@ -1,0 +1,18 @@
+---
+# tasks file for fzf
+- name: Install fzf package
+  when: ansible_facts["distribution"] == 'Debian'
+  apt:
+    name:
+      - fzf
+    state: latest
+    autoremove: true
+    autoclean: true
+
+- name: Install fzf key bindings
+  blockinfile:
+    path: /home/{{ ansible_user }}/.bashrc
+    prepend_newline: true
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - FZF KEY BINDINGS"
+    block: |
+      source /usr/share/doc/fzf/examples/key-bindings.bash

@@ -91,6 +91,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | Role     | Description                                  |
 |----------|-----------------------------------------------|
 | [docker](roles/docker) | Installs Docker CE from the official apt repo |
+| [fzf](roles/fzf) | Installs fzf and its bash key bindings |
 
 ## License
 
