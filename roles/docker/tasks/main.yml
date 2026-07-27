@@ -1,0 +1,60 @@
+---
+# tasks file for docker
+
+- name: Only aarch64 supported
+  ansible.builtin.assert:
+    that: "ansible_facts['architecture'] == 'aarch64' or ansible_facts['architecture'] == 'x86_64'"
+    fail_msg: "architecture is not supported by this role"
+    quiet: true
+
+- name: Install dependent packages
+  notify: Restart docker
+  apt:
+    name:
+      - gnupg
+      - python3-apt
+      - python3-debian
+      - ca-certificates
+      - python3-cffi
+      - python3-cryptography
+    state: latest
+
+- name: Add Docker apt repository (deb822)
+  notify: Restart docker
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/debian
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    signed_by: https://download.docker.com/linux/debian/gpg
+  register: docker_repo
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+  when: docker_repo.changed
+
+- name: Install docker engine
+  notify: Restart docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: latest
+
+- name: Add user to 'docker' group avoiding sudo
+  ansible.builtin.user:
+    name: "{{ linux_user_id }}"
+    groups: docker
+    append: yes
+
+- name: Enable & start daemon
+  systemd:
+    name: docker.service
+    daemon_reload: true
+    enabled: true
+    state: started

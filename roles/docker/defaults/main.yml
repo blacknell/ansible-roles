@@ -1,0 +1,7 @@
+---
+# defaults file for docker
+
+# The role adds this user to the 'docker' group so it can run docker
+# commands without sudo. This variable has no default and MUST be
+# set by the playbook or inventory that consumes this role.
+# linux_user_id: your_user

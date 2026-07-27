@@ -1,0 +1,16 @@
+namespace: blacknell
+name: ansible_roles
+version: 1.0.0
+readme: README.md
+authors:
+  - Paul Blacknell
+description: A shared collection of reusable, standalone Ansible roles
+license:
+  - MIT
+tags:
+  - infrastructure
+  - homelab
+  - debian
+repository: https://github.com/blacknell/ansible-roles
+issues: https://github.com/blacknell/ansible-roles/issues
+build_ignore: []

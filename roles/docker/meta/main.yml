@@ -1,0 +1,23 @@
+galaxy_info:
+  author: Paul Blacknell
+  description: Installs and configures Docker CE (docker-ce, containerd.io, buildx, compose plugin) from the official Docker apt repository on Debian-based hosts
+  company: false
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - docker
+    - containers
+    - containerd
+    - debian
+
+dependencies: []
