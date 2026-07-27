@@ -92,7 +92,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 |----------|-----------------------------------------------|
 | [docker](roles/docker) | Installs Docker CE from the official apt repo |
 | [fzf](roles/fzf) | Installs fzf and its bash key bindings |
-| [update-debian](roles/update-debian) | Updates, dist-upgrades, and cleans up apt packages |
+| [update_debian](roles/update_debian) | Updates, dist-upgrades, and cleans up apt packages |
 
 ## License
 

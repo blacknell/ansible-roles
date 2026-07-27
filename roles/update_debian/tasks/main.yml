@@ -1,5 +1,5 @@
 ---
-# tasks file for update-debian
+# tasks file for update_debian
 
 - name: Update all packages to their latest version
   apt:

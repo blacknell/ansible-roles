@@ -1,4 +1,4 @@
-# ansible-role-update-debian
+# ansible-role-update_debian
 
 Updates all apt packages to their latest version, dist-upgrades the OS, and cleans up
 unused packages/cache (`apt-get update && dist-upgrade && autoclean && autoremove`).
@@ -36,7 +36,7 @@ Then reference it by its fully-qualified name:
 - hosts: debian_hosts
   become: true
   roles:
-    - blacknell.ansible_roles.update-debian
+    - blacknell.ansible_roles.update_debian
 ```
 
 ## Testing
