@@ -1,0 +1,17 @@
+---
+- name: install ntp
+  #  when: ansible_facts['distribution_version'] | int <= 11
+  apt:
+    name:
+      - ntp
+    state: latest
+
+- name: ntp config file
+  #  when: ansible_facts['distribution_version'] | int <= 11
+  notify: Restart NTP
+  copy:
+    src: "ntp.conf"
+    dest: "/etc"
+    owner: root
+    group: adm
+    mode: "0640"
