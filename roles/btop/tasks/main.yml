@@ -1,0 +1,7 @@
+---
+- name: Install packages
+  notify: Restart docker
+  apt:
+    name:
+      - btop
+    state: latest
