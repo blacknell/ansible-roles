@@ -2,7 +2,7 @@
 - name: set time zone
   notify: Restart crond
   timezone:
-    name: timezone
+    name: "{{ timezone }}"
 
 - ansible.builtin.include_role:
     name: logrotate
