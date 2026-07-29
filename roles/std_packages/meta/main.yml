@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Installs logrotate and deploys a fixed set of logrotate.d configs for common services
+  description: Standard host baseline - timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, and crond logging verbosity
   company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
@@ -16,7 +16,8 @@ galaxy_info:
 
   galaxy_tags:
     - debian
-    - logging
-    - logrotate
+    - baseline
+    - apt
+    - cron
 
 dependencies: []

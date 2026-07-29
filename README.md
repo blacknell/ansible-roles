@@ -93,7 +93,10 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [docker](roles/docker) | Installs Docker CE from the official apt repo |
 | [fzf](roles/fzf) | Installs fzf and its bash key bindings |
 | [update_debian](roles/update_debian) | Updates, dist-upgrades, and cleans up apt packages |
-| [std_packages](roles/std_packages) | MQTT auth env vars + optional Raspberry Pi LED/DRM tweaks |
+| [std_packages](roles/std_packages) | Baseline host setup: timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, crond log verbosity |
+| [ntp](roles/ntp) | Installs ntp with a UK pool.ntp.org config |
+| [logrotate](roles/logrotate) | Installs logrotate with configs for a fixed set of services |
+| [btop](roles/btop) | Installs btop (undocumented — no meta/README/LICENSE yet) |
 
 ## License
 

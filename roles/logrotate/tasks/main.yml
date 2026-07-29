@@ -1,10 +1,10 @@
 ---
 # tasks file for logrotate
--
+
 - name: install logrotate
   apt:
     name:
-      - git
+      - logrotate
     state: latest
 
 - name: logrotate.d config files

@@ -1,38 +1,62 @@
-Role Name
-=========
+# ansible-role-logrotate
 
-A brief description of the role goes here.
+Installs `logrotate` and deploys a fixed set of `/etc/logrotate.d/` config
+files for a specific list of services.
 
-Requirements
-------------
+## Requirements
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- Debian (or a Debian-based distribution)
+- The play must run with `become: true`, since the role installs a package and
+  writes to `/etc/logrotate.d`
 
-Role Variables
---------------
+## Role Variables
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+None. The `logrotate.d` configs (`files/logrotate.d/*`) are static files, not
+templates, and are all copied to `/etc/logrotate.d/` unconditionally —
+regardless of whether the corresponding service is actually installed on the
+host. The included configs are for: `apache2`, `apt`, `cron`, `fail2ban`,
+`heating`, `homeauto`, `homeautogit`, `jenkins`, `mongo`, `monitor`,
+`mqttlogger`, `mysql-server`, `nodered`, `nomad`, `rsyslog`, `sleepylizard`,
+`supervisord`. If you don't run one of these services, its logrotate config
+is harmless but unused — fork the `files/` directory if you want a leaner set.
 
-Dependencies
-------------
+## Dependencies
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+None.
 
-Example Playbook
-----------------
+## Example Playbook
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+This role is distributed as part of the `blacknell.ansible_roles` collection. Add it to
+your `requirements.yml`:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+collections:
+  - name: https://github.com/blacknell/ansible-roles.git
+    type: git
+    version: main
+```
 
-License
--------
+Then reference it by its fully-qualified name:
 
-BSD
+```yaml
+- hosts: debian_hosts
+  become: true
+  roles:
+    - blacknell.ansible_roles.logrotate
+```
 
-Author Information
-------------------
+## Testing
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+A minimal local test playbook is provided under `tests/`:
+
+```bash
+ansible-playbook -i tests/inventory tests/test.yml
+```
+
+## License
+
+MIT
+
+## Author Information
+
+Paul Blacknell

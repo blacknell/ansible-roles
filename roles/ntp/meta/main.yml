@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Installs logrotate and deploys a fixed set of logrotate.d configs for common services
+  description: Installs ntp and deploys a pool.ntp.org-based ntp.conf
   company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
@@ -16,7 +16,7 @@ galaxy_info:
 
   galaxy_tags:
     - debian
-    - logging
-    - logrotate
+    - ntp
+    - time
 
 dependencies: []
