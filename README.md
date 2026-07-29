@@ -93,6 +93,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [docker](roles/docker) | Installs Docker CE from the official apt repo |
 | [fzf](roles/fzf) | Installs fzf and its bash key bindings |
 | [update_debian](roles/update_debian) | Updates, dist-upgrades, and cleans up apt packages |
+| [std_packages](roles/std_packages) | MQTT auth env vars + optional Raspberry Pi LED/DRM tweaks |
 
 ## License
 

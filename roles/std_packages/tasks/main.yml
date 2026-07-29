@@ -1,0 +1,67 @@
+---
+- name: set time zone
+  notify: Restart crond
+  timezone:
+    name: timezone
+
+- ansible.builtin.include_role:
+    name: logrotate
+
+- name: profile.d config files
+  copy:
+    src: profile.d/
+    dest: /etc/profile.d/
+    owner: root
+    group: adm
+    mode: '0644'
+
+- name: apt preference files
+  when: define_apt_preferences
+  copy:
+    src: apt/preferences.d/
+    dest: /etc/apt/preferences.d/
+    owner: root
+    group: adm
+    mode: '0640'
+
+- name: install git
+  apt:
+    name:
+      - git
+    state: latest
+
+- name: unattended upgrades
+  apt:
+    name:
+      - unattended-upgrades
+      - apt-listchanges
+    state: latest
+
+- name: install iperf3
+  when: install_iperf3
+  apt:
+    name:
+      - iperf3
+    state: latest
+
+- name: install rsync
+  apt:
+    name:
+      - rsync
+    state: latest
+
+- name: set crond to log only failed processes
+  when: not crond_log_processes
+  notify: Restart crond
+  lineinfile:
+    path: /etc/default/cron
+    state: present
+    line: 'EXTRA_OPTS="-L 4"'
+
+- name: set crond to also log failed processes
+  when: crond_log_processes
+  notify: Restart crond
+  lineinfile:
+    path: /etc/default/cron
+    state: present
+    line: 'EXTRA_OPTS="-L 5"'

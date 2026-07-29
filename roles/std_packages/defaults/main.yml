@@ -1,0 +1,9 @@
+---
+# Set true (e.g. in group_vars for your Raspberry Pi hosts/group) to enable
+# eg. apt preference pinning
+# Defaults to false so this role doesn't assume a particular inventory group
+# layout.
+define_apt_preferences: false
+install_iperf3: false
+crond_log_processes: false
+timezone: "Europe/London"

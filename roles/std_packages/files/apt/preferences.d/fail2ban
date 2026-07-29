@@ -1,0 +1,3 @@
+Package: fail2ban
+Pin: release a=testing
+Pin-Priority: 1000
