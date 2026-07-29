@@ -4,9 +4,6 @@
   timezone:
     name: "{{ timezone }}"
 
-- ansible.builtin.include_role:
-    name: logrotate
-
 - name: profile.d config files
   copy:
     src: profile.d/
