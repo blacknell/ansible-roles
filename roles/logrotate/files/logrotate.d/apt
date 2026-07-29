@@ -1,0 +1,18 @@
+/var/log/apt/term.log {
+  dateext
+  rotate 12
+  monthly
+  compress
+  missingok
+  notifempty
+}
+
+/var/log/apt/history.log {
+  dateext
+  rotate 12
+  monthly
+  compress
+  missingok
+  notifempty
+}
+

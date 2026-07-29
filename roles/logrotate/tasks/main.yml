@@ -1,0 +1,16 @@
+---
+# tasks file for logrotate
+-
+- name: install logrotate
+  apt:
+    name:
+      - git
+    state: latest
+
+- name: logrotate.d config files
+  copy:
+    src: "logrotate.d/"
+    dest: "/etc/logrotate.d/"
+    owner: root
+    group: adm
+    mode: "0640"

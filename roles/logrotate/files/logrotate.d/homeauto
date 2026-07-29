@@ -1,0 +1,10 @@
+/var/log/homeauto.log {
+    dateext
+    monthly
+    missingok
+    rotate 24
+    compress
+    delaycompress
+    notifempty
+    create 640 www-data adm
+}

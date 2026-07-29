@@ -1,0 +1,12 @@
+/var/tmp/*-git.log
+{
+  rotate 2
+  weekly
+  dateext
+  su pi pi
+  create 640 pi adm
+  compress
+  missingok
+  notifempty
+  delaycompress
+}
