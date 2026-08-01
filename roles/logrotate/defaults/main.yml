@@ -13,6 +13,10 @@ logrotate_services:
   apt: true
   cron: true
   fail2ban: true
+  msmtp: false
+  mysql-server: false
+  rsyslog: true
+
   heating: false
   homeauto: false
   homeautogit: false
@@ -20,11 +24,8 @@ logrotate_services:
   mongo: false
   monitor: false
   mqttlogger: false
-  msmtp: false
-  mysql-server: true
   nodered: false
   nomad: false
-  rsyslog: true
   sleepylizard: false
   supervisord: false
 
