@@ -13,19 +13,19 @@ logrotate_services:
   apt: true
   cron: true
   fail2ban: true
-  heating: true
-  homeauto: true
-  homeautogit: true
-  jenkins: true
-  mongo: true
-  monitor: true
-  mqttlogger: true
+  heating: false
+  homeauto: false
+  homeautogit: false
+  jenkins: false
+  mongo: false
+  monitor: false
+  mqttlogger: false
   mysql-server: true
-  nodered: true
-  nomad: true
+  nodered: false
+  nomad: false
   rsyslog: true
-  sleepylizard: true
-  supervisord: true
+  sleepylizard: false
+  supervisord: false
 
 # Log file path(s)/globs rotated by each service's config. Override any of
 # these in host_vars/group_vars to point at different paths without forking

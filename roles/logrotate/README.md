@@ -86,6 +86,10 @@ Note: `apt` rotates `term.log` and `history.log` as a single combined stanza (bo
 paths share the same options) rather than as Debian's default two separate stanzas —
 functionally identical, just one block instead of two.
 
+Each rendered config is checked with `logrotate -d` (dry-run/debug mode) before being
+installed — if a template renders invalid logrotate syntax, the task fails rather than
+deploying a broken config.
+
 ## Dependencies
 
 None.
