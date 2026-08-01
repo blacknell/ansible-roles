@@ -2,13 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-  rotate 12
-  monthly
-  dateext
-  create 640 pi adm
-  copytruncate
-  compress
-  missingok
-  notifempty
-  delaycompress
+{{ logrotate_supervisord_options }}
 }

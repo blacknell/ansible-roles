@@ -2,15 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-	rotate 7
-	daily
-	missingok
-    dateext
-	notifempty
-	compress
-	delaycompress
-	sharedscripts
-	postrotate
-		/usr/lib/rsyslog/rsyslog-rotate
-	endscript
+{{ logrotate_rsyslog_options }}
 }

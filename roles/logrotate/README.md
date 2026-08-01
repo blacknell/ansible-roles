@@ -78,9 +78,26 @@ the others:
 | `logrotate_sleepylizard_paths`    | `/var/log/sleepylizard.log`                                               |
 | `logrotate_supervisord_paths`     | `/var/log/supervisor/supervisord.log`                                     |
 
-The rotation options (frequency, retention, `create` owner/group, pre/postrotate
-scripts) are not parameterised — only the log path(s) each config targets. If you
-need different options too, fork the relevant `templates/<service>.j2`.
+Each service also has a `logrotate_<service>_options` variable holding the *entire*
+options block (everything between `{` and `}` — frequency, retention, `create`
+owner/group, pre/postrotate scripts) as a single multi-line string, defaulted to what
+this role has always deployed:
+
+```yaml
+# host_vars/myhost.yml — override the whole block for one service
+logrotate_apache2_options: |
+  weekly
+  dateext
+  rotate 4
+  compress
+```
+
+This overrides the *entire* block at once, not one directive inside it — there's no
+way to change just `rotate 12` → `rotate 4` while keeping everything else default, you
+restate the whole thing. That's deliberate: making every individual directive its own
+variable would mean 6-10 extra vars × 17 services, and pre/postrotate shell scripts
+don't decompose into scalars cleanly anyway. Same trade-off as `logrotate_<service>_paths`
+being a full-replace list rather than an appendable one.
 
 Note: `apt` rotates `term.log` and `history.log` as a single combined stanza (both
 paths share the same options) rather than as Debian's default two separate stanzas —

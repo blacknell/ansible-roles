@@ -2,12 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-    dateext
-    monthly
-    missingok
-    rotate 12
-    compress
-    delaycompress
-    notifempty
-    create 640 root adm
+{{ logrotate_cron_options }}
 }

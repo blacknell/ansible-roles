@@ -2,15 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-    monthly
-    rotate 12
-    su root adm
-    compress
-    dateext
-    missingok
-    notifempty
-    sharedscripts
-    postrotate
-	/bin/kill -SIGUSR1 `cat /var/lib/mongodb/mongod.lock 2> /dev/null` 2> /dev/null || true
-    endscript
+{{ logrotate_mongo_options }}
 }

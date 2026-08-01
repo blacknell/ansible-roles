@@ -2,11 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-        weekly
-        copytruncate
-        missingok
-        rotate 52
-        compress
-        delaycompress
-        notifempty
+{{ logrotate_jenkins_options }}
 }

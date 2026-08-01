@@ -2,13 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-  rotate 28
-  daily
-  dateext
-  create 640 pi adm
-  copytruncate
-  compress
-  missingok
-  notifempty
-  delaycompress
+{{ logrotate_mqttlogger_options }}
 }

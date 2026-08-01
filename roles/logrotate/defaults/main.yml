@@ -98,3 +98,209 @@ logrotate_sleepylizard_paths:
 
 logrotate_supervisord_paths:
   - /var/log/supervisor/supervisord.log
+
+# Full logrotate options block (everything between the { and }) for each
+# service, overridable independently of the paths above. Defaults reproduce
+# what this role has always deployed (leading tabs in script bodies expanded
+# to spaces - YAML block literals can't contain tabs in indentation; purely
+# cosmetic, no functional change to the deployed shell scripts).
+logrotate_apache2_options: |
+      monthly
+      dateext
+      missingok
+      rotate 12
+      compress
+      delaycompress
+      notifempty
+      create 640 root adm
+      sharedscripts
+      prerotate
+      if [ -d /etc/logrotate.d/httpd-prerotate ]; then
+          run-parts /etc/logrotate.d/httpd-prerotate
+      fi
+      endscript
+      postrotate
+      if pgrep -f ^/usr/sbin/apache2 > /dev/null; then
+          invoke-rc.d apache2 reload 2>&1 | logger -t apache2.logrotate
+      fi
+      endscript
+
+logrotate_apt_options: |
+    dateext
+    rotate 12
+    monthly
+    compress
+    missingok
+    notifempty
+
+logrotate_cron_options: |
+      dateext
+      monthly
+      missingok
+      rotate 12
+      compress
+      delaycompress
+      notifempty
+      create 640 root adm
+
+logrotate_fail2ban_options: |
+      monthly
+      rotate 12
+      dateext
+      compress
+      notifempty
+      delaycompress
+      missingok
+      postrotate
+      fail2ban-client flushlogs 1>/dev/null
+      endscript
+
+      # If fail2ban runs as non-root it still needs to have write access
+      # to logfiles.
+      # create 640 fail2ban adm
+      create 640 root adm
+
+logrotate_heating_options: |
+    rotate 12
+    monthly
+    dateext
+    create 640 pi adm
+    copytruncate
+    compress
+    missingok
+    notifempty
+    delaycompress
+
+logrotate_homeauto_options: |
+      dateext
+      monthly
+      missingok
+      rotate 24
+      compress
+      delaycompress
+      notifempty
+      create 640 www-data adm
+
+logrotate_homeautogit_options: |
+    rotate 2
+    weekly
+    dateext
+    su pi pi
+    create 640 pi adm
+    compress
+    missingok
+    notifempty
+    delaycompress
+
+logrotate_jenkins_options: |
+          weekly
+          copytruncate
+          missingok
+          rotate 52
+          compress
+          delaycompress
+          notifempty
+
+logrotate_mongo_options: |
+      monthly
+      rotate 12
+      su root adm
+      compress
+      dateext
+      missingok
+      notifempty
+      sharedscripts
+      postrotate
+      /bin/kill -SIGUSR1 `cat /var/lib/mongodb/mongod.lock 2> /dev/null` 2> /dev/null || true
+      endscript
+
+logrotate_monitor_options: |
+    rotate 12
+    monthly
+    dateext
+    create 640 pi adm
+    copytruncate
+    compress
+    missingok
+    notifempty
+    delaycompress
+
+logrotate_mqttlogger_options: |
+    rotate 28
+    daily
+    dateext
+    create 640 pi adm
+    copytruncate
+    compress
+    missingok
+    notifempty
+    delaycompress
+
+logrotate_mysql_server_options: |
+      monthly
+      rotate 12
+          dateext
+      missingok
+      create 640 mysql adm
+      compress
+      sharedscripts
+      postrotate
+            test -x /usr/bin/mysqladmin || exit 0
+            if [ -f `my_print_defaults --mysqld | grep -m 1 -oP "pid-file=\K.+$"` ]; then
+              # If this fails, check debian.conf!
+              mysqladmin --defaults-file=/etc/mysql/debian.cnf --local flush-error-log \
+                flush-engine-log flush-general-log flush-slow-log
+            fi
+      endscript
+
+logrotate_nodered_options: |
+      rotate 4
+      weekly
+      missingok
+      notifempty
+      compress
+      delaycompress
+
+logrotate_nomad_options: |
+      dateext
+      monthly
+      missingok
+      rotate 24
+      compress
+      delaycompress
+      notifempty
+      create 640 www-data adm
+
+logrotate_rsyslog_options: |
+      rotate 7
+      daily
+      missingok
+      dateext
+      notifempty
+      compress
+      delaycompress
+      sharedscripts
+      postrotate
+          /usr/lib/rsyslog/rsyslog-rotate
+      endscript
+
+logrotate_sleepylizard_options: |
+      dateext
+      monthly
+      missingok
+      rotate 24
+      compress
+      delaycompress
+      notifempty
+      create 640 www-data adm
+
+logrotate_supervisord_options: |
+    rotate 12
+    monthly
+    dateext
+    create 640 pi adm
+    copytruncate
+    compress
+    missingok
+    notifempty
+    delaycompress

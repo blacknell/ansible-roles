@@ -2,12 +2,5 @@
 {{ path }}
 {% endfor %}
 {
-    dateext
-    monthly
-    missingok
-    rotate 24
-    compress
-    delaycompress
-    notifempty
-    create 640 www-data adm
+{{ logrotate_sleepylizard_options }}
 }
