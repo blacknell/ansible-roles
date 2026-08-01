@@ -14,6 +14,7 @@
     owner: root
     group: adm
     mode: "0640"
+    validate: "logrotate -d %s"
   loop: "{{ logrotate_services | dict2items }}"
   when: item.value
 
