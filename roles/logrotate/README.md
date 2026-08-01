@@ -17,8 +17,7 @@ entirely, without forking the role.
 `logrotate_services` is a dict of service name → `true`/`false`, controlling which
 configs get deployed. Setting a service to `false` also removes its config file from
 `/etc/logrotate.d/` if one is already present (e.g. left over from when it was
-previously `true`) — it's not just skipped, it's actively cleaned up. Defaults to all
-of them enabled:
+previously `true`) — it's not just skipped, it's actively cleaned up. Current defaults:
 
 ```yaml
 logrotate_services:
@@ -26,33 +25,47 @@ logrotate_services:
   apt: true
   cron: true
   fail2ban: true
-  heating: true
-  homeauto: true
-  homeautogit: true
-  jenkins: true
-  mongo: true
-  monitor: true
-  mqttlogger: true
-  mysql-server: true
-  nodered: true
-  nomad: true
+  msmtp: false
+  mysql-server: false
   rsyslog: true
-  sleepylizard: true
-  supervisord: true
+
+  heating: false
+  homeauto: false
+  homeautogit: false
+  jenkins: false
+  mongo: false
+  monitor: false
+  mqttlogger: false
+  nodered: false
+  nomad: false
+  sleepylizard: false
+  supervisord: false
 ```
 
-To disable a service this host doesn't run, override it with `combine()` so you only
-touch the service(s) you care about:
+**Don't override `logrotate_services` directly.** Two patterns that look reasonable
+both break it:
+
+- A plain dict literal (`logrotate_services: {jenkins: true}`) replaces the whole
+  variable rather than merging — every other service silently disappears from the
+  dict and gets skipped too.
+- A self-referencing `combine()` (`logrotate_services: "{{ logrotate_services |
+  combine({'jenkins': true}) }}"`) fails with `Recursive loop detected in template:
+  maximum recursion depth exceeded` — confirmed this fails identically whether it's
+  in `host_vars`, `group_vars`, or a play/role `vars:` block. Role defaults simply
+  aren't in scope yet when a variable at that same or an earlier stage tries to
+  reference itself, so the lookup just points back at its own in-progress
+  definition.
+
+Instead, set `logrotate_services_override` with only the services you want to
+change — the role merges it internally via `set_fact`, so nothing ever
+self-references:
 
 ```yaml
 # host_vars/myhost.yml
-logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
+logrotate_services_override:
+  jenkins: true
+  msmtp: true
 ```
-
-**Don't** override with a plain dict literal (`logrotate_services: {jenkins: false}`)
-— Ansible replaces the whole variable rather than merging dicts, so every other
-service would silently end up undefined and get skipped too. Always go through
-`combine()` against the existing `logrotate_services`.
 
 Each service also has its own `logrotate_<service>_paths` list (underscores, even
 for `mysql-server` → `logrotate_mysql_server_paths`), overridable independently of
@@ -130,7 +143,8 @@ override another service's paths:
 - hosts: debian_hosts
   become: true
   vars:
-    logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
+    logrotate_services_override:
+      jenkins: false
     logrotate_apache2_paths:
       - /var/log/apache2/*.log
       - /var/log/apache2-vhosts/*.log

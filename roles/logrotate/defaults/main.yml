@@ -1,13 +1,24 @@
 ---
 # defaults file for logrotate
 
-# Which logrotate.d configs to deploy, true = deploy / false = skip. Override
-# in host_vars/group_vars using combine() so you only touch the services you
-# care about, e.g.:
-#   logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
-# Do NOT override with a plain dict literal (e.g. `logrotate_services: {jenkins: false}`)
-# - Ansible replaces the whole variable rather than merging, so every other
-# service would end up undefined/skipped.
+# Which logrotate.d configs to deploy, true = deploy / false = skip.
+#
+# Do NOT override this directly (neither with a plain dict literal like
+# `logrotate_services: {jenkins: false}`, which replaces the whole variable
+# and silently undefines every other service, NOR with a self-referencing
+# combine() like `logrotate_services: "{{ logrotate_services | combine(...) }}"`
+# - that causes "Recursive loop detected in template" regardless of whether
+# it's in host_vars, group_vars, or play/role vars: role defaults aren't in
+# scope yet when the play's own vars are resolved, so the reference just
+# points back at itself).
+#
+# Instead, set logrotate_services_override with only the services you want to
+# change - the role merges it internally via set_fact, so nothing ever
+# self-references:
+#   logrotate_services_override:
+#     jenkins: false
+logrotate_services_override: {}
+
 logrotate_services:
   apache2: true
   apt: true
