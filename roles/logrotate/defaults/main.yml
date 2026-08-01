@@ -1,2 +1,97 @@
 ---
 # defaults file for logrotate
+
+# Which logrotate.d configs to deploy. Defaults to all of them; a host_vars
+# or group_vars override can drop entries here to skip services this host
+# doesn't run, e.g.:
+#   logrotate_services: "{{ logrotate_services | reject('equalto', 'jenkins') | list }}"
+logrotate_services:
+  - apache2
+  - apt
+  - cron
+  - fail2ban
+  - heating
+  - homeauto
+  - homeautogit
+  - jenkins
+  - mongo
+  - monitor
+  - mqttlogger
+  - mysql-server
+  - nodered
+  - nomad
+  - rsyslog
+  - sleepylizard
+  - supervisord
+
+# Log file path(s)/globs rotated by each service's config. Override any of
+# these in host_vars/group_vars to point at different paths without forking
+# the role.
+logrotate_apache2_paths:
+  - /var/log/apache2/*.log
+
+logrotate_apt_paths:
+  - /var/log/apt/term.log
+  - /var/log/apt/history.log
+
+logrotate_cron_paths:
+  - /var/log/cron.log
+
+logrotate_fail2ban_paths:
+  - /var/log/fail2ban.log
+
+logrotate_heating_paths:
+  - /var/log/heating.log
+
+logrotate_homeauto_paths:
+  - /var/log/homeauto.log
+
+logrotate_homeautogit_paths:
+  - /var/tmp/*-git.log
+
+logrotate_jenkins_paths:
+  - /var/log/jenkins/jenkins.log
+  - /var/log/jenkins/access_log
+
+logrotate_mongo_paths:
+  - /var/log/mongodb/*.log
+
+logrotate_monitor_paths:
+  - /var/log/monitor.readings.log
+  - /var/log/monitor.log
+  - /var/log/workshop.log
+
+logrotate_mqttlogger_paths:
+  - /var/log/mqtt*.log
+
+logrotate_mysql_server_paths:
+  - /var/log/mysql/mysql.log
+  - /var/log/mysql/mysql-slow.log
+  - /var/log/mysql/mariadb-slow.log
+  - /var/log/mysql/error.log
+
+logrotate_nodered_paths:
+  - /var/log/nodered-install.log
+
+logrotate_nomad_paths:
+  - /var/log/nomad.log
+
+logrotate_rsyslog_paths:
+  - /var/log/syslog
+  - /var/log/mail.info
+  - /var/log/mail.warn
+  - /var/log/mail.err
+  - /var/log/mail.log
+  - /var/log/daemon.log
+  - /var/log/kern.log
+  - /var/log/auth.log
+  - /var/log/user.log
+  - /var/log/lpr.log
+  - /var/log/debug
+  - /var/log/messages
+
+logrotate_sleepylizard_paths:
+  - /var/log/sleepylizard.log
+
+logrotate_supervisord_paths:
+  - /var/log/supervisor/supervisord.log

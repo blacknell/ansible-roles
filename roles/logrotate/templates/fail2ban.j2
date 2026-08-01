@@ -1,4 +1,7 @@
-/var/log/fail2ban.log {
+{% for path in logrotate_fail2ban_paths %}
+{{ path }}
+{% endfor %}
+{
     monthly
     rotate 12
     dateext

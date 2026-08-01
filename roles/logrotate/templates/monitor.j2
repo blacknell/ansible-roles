@@ -1,6 +1,6 @@
-/var/log/monitor.readings.log 
-/var/log/monitor.log
-/var/log/workshop.log
+{% for path in logrotate_monitor_paths %}
+{{ path }}
+{% endfor %}
 {
   rotate 12
   monthly

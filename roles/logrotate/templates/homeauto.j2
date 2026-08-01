@@ -1,4 +1,7 @@
-/var/log/sleepylizard.log {
+{% for path in logrotate_homeauto_paths %}
+{{ path }}
+{% endfor %}
+{
     dateext
     monthly
     missingok

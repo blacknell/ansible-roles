@@ -1,4 +1,7 @@
-/var/log/apache2/*.log {
+{% for path in logrotate_apache2_paths %}
+{{ path }}
+{% endfor %}
+{
     monthly
     dateext
     missingok

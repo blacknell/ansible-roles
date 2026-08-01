@@ -1,4 +1,6 @@
-/var/log/supervisor/supervisord.log
+{% for path in logrotate_heating_paths %}
+{{ path }}
+{% endfor %}
 {
   rotate 12
   monthly

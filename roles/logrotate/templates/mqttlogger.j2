@@ -1,7 +1,9 @@
-/var/log/heating.log
+{% for path in logrotate_mqttlogger_paths %}
+{{ path }}
+{% endfor %}
 {
-  rotate 12
-  monthly
+  rotate 28
+  daily
   dateext
   create 640 pi adm
   copytruncate

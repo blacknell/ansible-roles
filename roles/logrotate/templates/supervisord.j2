@@ -1,7 +1,9 @@
-/var/log/mqtt*.log
+{% for path in logrotate_supervisord_paths %}
+{{ path }}
+{% endfor %}
 {
-  rotate 28
-  daily
+  rotate 12
+  monthly
   dateext
   create 640 pi adm
   copytruncate

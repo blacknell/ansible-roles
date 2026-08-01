@@ -1,4 +1,7 @@
-/var/log/cron.log {
+{% for path in logrotate_cron_paths %}
+{{ path }}
+{% endfor %}
+{
     dateext
     monthly
     missingok

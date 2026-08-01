@@ -1,4 +1,6 @@
-/var/log/mongodb/*.log
+{% for path in logrotate_mongo_paths %}
+{{ path }}
+{% endfor %}
 {
     monthly
     rotate 12

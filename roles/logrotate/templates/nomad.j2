@@ -1,4 +1,7 @@
-/var/log/nomad.log {
+{% for path in logrotate_nomad_paths %}
+{{ path }}
+{% endfor %}
+{
     dateext
     monthly
     missingok

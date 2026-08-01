@@ -1,4 +1,6 @@
-/var/tmp/*-git.log
+{% for path in logrotate_homeautogit_paths %}
+{{ path }}
+{% endfor %}
 {
   rotate 2
   weekly

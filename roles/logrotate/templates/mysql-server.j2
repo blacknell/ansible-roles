@@ -2,7 +2,10 @@
 #   flush-logs'd only once.
 #   Else the binary logs would automatically increase by n times every day.
 # - The error log is obsolete, messages go to syslog now.
-/var/log/mysql/mysql.log /var/log/mysql/mysql-slow.log /var/log/mysql/mariadb-slow.log /var/log/mysql/error.log {
+{% for path in logrotate_mysql_server_paths %}
+{{ path }}
+{% endfor %}
+{
 	monthly
 	rotate 12
         dateext
@@ -19,4 +22,3 @@
           fi
 	endscript
 }
-

@@ -1,4 +1,6 @@
-/var/log/nodered-install.log
+{% for path in logrotate_nodered_paths %}
+{{ path }}
+{% endfor %}
 {
 	rotate 4
 	weekly

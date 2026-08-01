@@ -8,9 +8,10 @@
     state: latest
 
 - name: logrotate.d config files
-  copy:
-    src: "logrotate.d/"
-    dest: "/etc/logrotate.d/"
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/logrotate.d/{{ item }}"
     owner: root
     group: adm
     mode: "0640"
+  loop: "{{ logrotate_services }}"

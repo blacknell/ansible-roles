@@ -1,0 +1,11 @@
+{% for path in logrotate_apt_paths %}
+{{ path }}
+{% endfor %}
+{
+  dateext
+  rotate 12
+  monthly
+  compress
+  missingok
+  notifempty
+}

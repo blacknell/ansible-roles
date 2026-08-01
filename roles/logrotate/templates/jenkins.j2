@@ -1,4 +1,7 @@
-/var/log/jenkins/jenkins.log /var/log/jenkins/access_log {
+{% for path in logrotate_jenkins_paths %}
+{{ path }}
+{% endfor %}
+{
         weekly
         copytruncate
         missingok
