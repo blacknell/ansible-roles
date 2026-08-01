@@ -1,28 +1,31 @@
 ---
 # defaults file for logrotate
 
-# Which logrotate.d configs to deploy. Defaults to all of them; a host_vars
-# or group_vars override can drop entries here to skip services this host
-# doesn't run, e.g.:
-#   logrotate_services: "{{ logrotate_services | reject('equalto', 'jenkins') | list }}"
+# Which logrotate.d configs to deploy, true = deploy / false = skip. Override
+# in host_vars/group_vars using combine() so you only touch the services you
+# care about, e.g.:
+#   logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
+# Do NOT override with a plain dict literal (e.g. `logrotate_services: {jenkins: false}`)
+# - Ansible replaces the whole variable rather than merging, so every other
+# service would end up undefined/skipped.
 logrotate_services:
-  - apache2
-  - apt
-  - cron
-  - fail2ban
-  - heating
-  - homeauto
-  - homeautogit
-  - jenkins
-  - mongo
-  - monitor
-  - mqttlogger
-  - mysql-server
-  - nodered
-  - nomad
-  - rsyslog
-  - sleepylizard
-  - supervisord
+  apache2: true
+  apt: true
+  cron: true
+  fail2ban: true
+  heating: true
+  homeauto: true
+  homeautogit: true
+  jenkins: true
+  mongo: true
+  monitor: true
+  mqttlogger: true
+  mysql-server: true
+  nodered: true
+  nomad: true
+  rsyslog: true
+  sleepylizard: true
+  supervisord: true
 
 # Log file path(s)/globs rotated by each service's config. Override any of
 # these in host_vars/group_vars to point at different paths without forking

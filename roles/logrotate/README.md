@@ -14,30 +14,45 @@ entirely, without forking the role.
 
 ## Role Variables
 
-`logrotate_services` controls which configs get deployed. Defaults to all of the
-following; override it (e.g. in `host_vars`) to drop entries for services this host
-doesn't run:
+`logrotate_services` is a dict of service name → `true`/`false`, controlling which
+configs get deployed. Setting a service to `false` also removes its config file from
+`/etc/logrotate.d/` if one is already present (e.g. left over from when it was
+previously `true`) — it's not just skipped, it's actively cleaned up. Defaults to all
+of them enabled:
 
 ```yaml
 logrotate_services:
-  - apache2
-  - apt
-  - cron
-  - fail2ban
-  - heating
-  - homeauto
-  - homeautogit
-  - jenkins
-  - mongo
-  - monitor
-  - mqttlogger
-  - mysql-server
-  - nodered
-  - nomad
-  - rsyslog
-  - sleepylizard
-  - supervisord
+  apache2: true
+  apt: true
+  cron: true
+  fail2ban: true
+  heating: true
+  homeauto: true
+  homeautogit: true
+  jenkins: true
+  mongo: true
+  monitor: true
+  mqttlogger: true
+  mysql-server: true
+  nodered: true
+  nomad: true
+  rsyslog: true
+  sleepylizard: true
+  supervisord: true
 ```
+
+To disable a service this host doesn't run, override it with `combine()` so you only
+touch the service(s) you care about:
+
+```yaml
+# host_vars/myhost.yml
+logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
+```
+
+**Don't** override with a plain dict literal (`logrotate_services: {jenkins: false}`)
+— Ansible replaces the whole variable rather than merging dicts, so every other
+service would silently end up undefined and get skipped too. Always go through
+`combine()` against the existing `logrotate_services`.
 
 Each service also has its own `logrotate_<service>_paths` list (underscores, even
 for `mysql-server` → `logrotate_mysql_server_paths`), overridable independently of
@@ -87,14 +102,14 @@ collections:
     version: main
 ```
 
-Then reference it by its fully-qualified name. To drop a service you don't run and
+Then reference it by its fully-qualified name. To disable a service you don't run and
 override another service's paths:
 
 ```yaml
 - hosts: debian_hosts
   become: true
   vars:
-    logrotate_services: "{{ logrotate_services | reject('equalto', 'jenkins') | list }}"
+    logrotate_services: "{{ logrotate_services | combine({'jenkins': false}) }}"
     logrotate_apache2_paths:
       - /var/log/apache2/*.log
       - /var/log/apache2-vhosts/*.log

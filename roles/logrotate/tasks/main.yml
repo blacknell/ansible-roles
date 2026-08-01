@@ -9,9 +9,17 @@
 
 - name: logrotate.d config files
   template:
-    src: "{{ item }}.j2"
-    dest: "/etc/logrotate.d/{{ item }}"
+    src: "{{ item.key }}.j2"
+    dest: "/etc/logrotate.d/{{ item.key }}"
     owner: root
     group: adm
     mode: "0640"
-  loop: "{{ logrotate_services }}"
+  loop: "{{ logrotate_services | dict2items }}"
+  when: item.value
+
+- name: remove logrotate.d config files for disabled services
+  file:
+    path: "/etc/logrotate.d/{{ item.key }}"
+    state: absent
+  loop: "{{ logrotate_services | dict2items }}"
+  when: not item.value
