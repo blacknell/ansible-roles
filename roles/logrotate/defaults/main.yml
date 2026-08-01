@@ -233,7 +233,7 @@ logrotate_mqttlogger_options: |
     rotate 28
     daily
     dateext
-    create 640 pi adm
+    create 640 root adm
     copytruncate
     compress
     missingok
@@ -241,15 +241,15 @@ logrotate_mqttlogger_options: |
     delaycompress
 
 logrotate_msmtp_options: |
-  rotate 12
-  monthly
-  dateext
-  create 640 pi adm
-  copytruncate
-  compress
-  missingok
-  notifempty
-  delaycompress
+    rotate 12
+    monthly
+    dateext
+    create 640 root adm
+    copytruncate
+    compress
+    missingok
+    notifempty
+    delaycompress
 
 logrotate_mysql_server_options: |
       monthly
@@ -313,7 +313,7 @@ logrotate_supervisord_options: |
     rotate 12
     monthly
     dateext
-    create 640 pi adm
+    create 640 root adm
     copytruncate
     compress
     missingok
