@@ -1,0 +1,6 @@
+{% for path in logrotate_msmtp_paths %}
+    {{ path }}
+{% endfor %}
+{
+{{ logrotate_msmtp_options }}
+}

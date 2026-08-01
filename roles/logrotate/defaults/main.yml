@@ -20,6 +20,7 @@ logrotate_services:
   mongo: false
   monitor: false
   mqttlogger: false
+  msmtp: false
   mysql-server: true
   nodered: false
   nomad: false
@@ -72,6 +73,9 @@ logrotate_mysql_server_paths:
   - /var/log/mysql/mysql-slow.log
   - /var/log/mysql/mariadb-slow.log
   - /var/log/mysql/error.log
+
+logrotate_msmtp_paths:
+  - /var/log/msmtp.log
 
 logrotate_nodered_paths:
   - /var/log/nodered-install.log
@@ -235,6 +239,17 @@ logrotate_mqttlogger_options: |
     missingok
     notifempty
     delaycompress
+
+logrotate_msmtp_options: |
+  rotate 12
+  monthly
+  dateext
+  create 640 pi adm
+  copytruncate
+  compress
+  missingok
+  notifempty
+  delaycompress
 
 logrotate_mysql_server_options: |
       monthly
