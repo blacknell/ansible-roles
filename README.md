@@ -87,7 +87,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [user](roles/user) | Per-user dotfiles (bash/zsh aliases, bash history settings) across macOS and Debian |
 | [syncthing](roles/syncthing) | Installs and updates Syncthing via Homebrew on macOS |
 | [python](roles/python) | Installs git, pip, and python3-venv |
-| [btop](roles/btop) | Installs btop (undocumented — no meta/README/LICENSE yet) |
+| [btop](roles/btop) | Installs btop (apt on Debian, Homebrew on macOS) |
 
 ## License
 
