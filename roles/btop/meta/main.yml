@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  author: Paul Blacknell
+  description: Installs btop (apt on Debian, Homebrew on macOS)
+  company: false
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: MacOSX
+      versions:
+        - all
+
+  galaxy_tags:
+    - btop
+    - monitoring
+    - debian
+    - macos
+    - homebrew
+
+dependencies: []
