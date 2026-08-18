@@ -1,0 +1,7 @@
+alias ll='ls -lag'
+alias lt='ls -lat'
+alias la='ls -la'
+
+#alias history='history 1'
+alias h=history
+

@@ -1,0 +1,2 @@
+---
+user_group: "{{ 'staff' if ansible_facts['os_family'] == 'Darwin' else ansible_user }}"

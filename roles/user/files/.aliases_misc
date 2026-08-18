@@ -1,0 +1,1 @@
+alias curl='noglob curl'

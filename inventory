@@ -1,0 +1,25 @@
+---
+# Small inventory for exercising this collection's roles directly against
+# real hosts during development, without needing a full site repo checked
+# out. Not meant to replace the real inventory in your main ansible repo.
+all:
+  vars:
+    ansible_user: paul
+  children:
+    macs:
+      hosts:
+        pauls-macbook-pro.local:
+          ansible_host: Pauls-MacBook-Pro-3.local
+
+    virtual_machines:
+      hosts:
+        vm20.blacknell.co.uk:
+        vm22.blacknell.co.uk:
+        vm23.blacknell.co.uk:
+
+    docker:
+      vars:
+        ansible_user: pi
+      hosts:
+        frigatepi.local:
+        dockerpi.local:

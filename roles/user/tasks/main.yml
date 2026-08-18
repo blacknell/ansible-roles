@@ -1,0 +1,85 @@
+---
+# ansible_facts['user_shell'] is gathered by the standard setup module via
+# Python's pwd module - it works cross-platform (Linux and macOS) with no
+# external command dependency.
+#
+# ansible_facts['user_dir'] is used instead of hardcoding /home/<user> for
+# the same reason - macOS home directories live at /Users/<user>, not
+# /home/<user>.
+#
+# Using the ansible_facts[...] dict form rather than the bare
+# ansible_user_shell/ansible_user_dir top-level vars: those are only
+# auto-injected while INJECT_FACTS_AS_VARS defaults to true, which
+# ansible-core is deprecating (removal planned for 2.24).
+#
+# Re-gather facts here with become: false, regardless of whether the calling
+# play sets become: true. The setup module's user_dir/user_shell come from
+# pwd.getpwuid(os.getuid()) at the moment it runs - under become that's the
+# become_user (root by default), not ansible_user. Without this, a play with
+# become: true would silently write to root's home instead of ansible_user's.
+- name: re-gather facts as ansible_user (not become-escalated)
+  become: false
+  setup:
+
+- name: Define ls aliases
+  when: (ansible_facts['user_shell'] | basename) in ['bash', 'zsh']
+  vars:
+    ls_aliases_dest:
+      bash: .bash_aliases
+      zsh: .zprofile
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/{{ ls_aliases_dest[ansible_facts['user_shell'] | basename] }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - LS ALIASES"
+    owner: "{{ ansible_user }}"
+    group: "{{ user_group }}"
+    block: "{{ lookup('ansible.builtin.file', '.aliases_ls') }}"
+
+- name: Define miscellaneous aliases
+  when: (ansible_facts['user_shell'] | basename) in ['bash', 'zsh']
+  vars:
+    ls_aliases_dest:
+      bash: .bash_aliases
+      zsh: .zprofile
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/{{ ls_aliases_dest[ansible_facts['user_shell'] | basename] }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - MISC ALIASES"
+    owner: "{{ ansible_user }}"
+    group: "{{ user_group }}"
+    block: "{{ lookup('ansible.builtin.file', '.aliases_misc') }}"
+
+- name: Define .bashrc history settings
+  when: (ansible_facts['user_shell'] | basename) == 'bash'
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - BASHRC HISTORY"
+    owner: "{{ ansible_user }}"
+    group: "{{ user_group }}"
+    block: |
+      if command -v pyenv 1>/dev/null 2>&1; then
+        eval "$(pyenv init -)"
+      fi
+
+      HISTSIZE=1000000
+      HISTFILESIZE=1000000
+      HISTCONTROL=ignorespace:erasedups
+      shopt -s histappend
+      PROMPT_COMMAND="history -a; history -c; history -r${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+- name: Define .zshrc history settings
+  when: (ansible_facts['user_shell'] | basename) == 'zsh'
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ZSHRC HISTORY"
+    block: |      
+      HISTSIZE=1000000
+      SAVEHIST=1000000
+      
+      setopt HIST_IGNORE_SPACE           
+      setopt HIST_IGNORE_DUPS
+      setopt HIST_IGNORE_ALL_DUPS
+      setopt HIST_SAVE_NO_DUPS
+      setopt SHARE_HISTORY

@@ -1,0 +1,19 @@
+---
+# Simple calling playbook for exercising this collection's roles locally,
+# straight against roles/ in this repo - no `ansible-galaxy install` needed
+# to run this. A real consuming playbook elsewhere would reference roles via
+# the blacknell.ansible_roles FQCN instead (see README.md).
+#
+# Usage:
+#   ansible-playbook -i inventory playbook.yml --check --diff
+#
+# The user role is the only one applied here since it's the one built to
+# work across both macOS (macs group) and Debian (virtual_machines group).
+# No become: connecting as ansible_user (paul) writing to their own home
+# directory doesn't need privilege escalation.
+- name: Apply user dotfiles across macOS and Debian hosts
+  hosts: all
+  gather_facts: true
+  become: false
+  roles:
+    - user

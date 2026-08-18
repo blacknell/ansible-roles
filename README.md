@@ -96,6 +96,9 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [std_packages](roles/std_packages) | Baseline host setup: timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, crond log verbosity |
 | [ntp](roles/ntp) | Installs ntp with a UK pool.ntp.org config |
 | [logrotate](roles/logrotate) | Installs logrotate with configs for a fixed set of services |
+| [user](roles/user) | Per-user dotfiles (bash/zsh aliases, bash history settings) across macOS and Debian |
+| [syncthing](roles/syncthing) | Installs and updates Syncthing via Homebrew on macOS |
+| [python](roles/python) | Installs git, pip, and python3-venv |
 | [btop](roles/btop) | Installs btop (undocumented — no meta/README/LICENSE yet) |
 
 ## License
