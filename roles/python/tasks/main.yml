@@ -1,0 +1,10 @@
+---
+# tasks file for python
+- name: Install git, pip & venv
+  apt:
+    name:
+      - git
+      - python3-venv
+      - python3-pip
+      - python3-debian
+    state: latest

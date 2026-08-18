@@ -1,0 +1,23 @@
+galaxy_info:
+  author: Paul Blacknell
+  description: Installs git, pip, and python3-venv for a working Python dev environment
+  company: false
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - python
+    - pip
+    - venv
+    - debian
+
+dependencies: []
