@@ -31,19 +31,6 @@ Reference a role by its fully-qualified name in your playbook:
     - blacknell.ansible_roles.docker
 ```
 
-Or declare the collection once at the play level and use short names:
-
-```yaml
-- hosts: docker_hosts
-  become: true
-  collections:
-    - blacknell.ansible_roles
-  vars:
-    linux_user_id: pi
-  roles:
-    - docker
-```
-
 ## Updating
 
 `ansible-galaxy install` only downloads a collection the first time. Pushing new
