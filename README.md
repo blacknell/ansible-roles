@@ -1,4 +1,5 @@
-# ansible-roles Collection
+[![Build Status](https://ci.blacknell.co.uk/buildStatus/icon?job=ansible-roles%2Fmain&style=plastic&subject=main)](https://ci.blacknell.co.uk/job/ansible-roles/job/main/)
+# ansible-roles
 
 A shared collection of reusable, standalone Ansible roles, packaged as the
 `blacknell.ansible_roles` Ansible Collection.
