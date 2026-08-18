@@ -1,4 +1,4 @@
-# ansible-roles
+# ansible-roles Collection
 
 A shared collection of reusable, standalone Ansible roles, packaged as the
 `blacknell.ansible_roles` Ansible Collection.
