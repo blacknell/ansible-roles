@@ -1,23 +1,40 @@
 # ansible-role-fzf
 
-Installs [fzf](https://github.com/junegunn/fzf) via apt and adds its bash key bindings
-(`Ctrl-R`, `Ctrl-T`, etc.) to the connecting user's `.bashrc`.
+Installs [fzf](https://github.com/junegunn/fzf) — via apt on Debian, via Homebrew on
+macOS — and wires up its shell key bindings (`Ctrl-R`, `Ctrl-T`, etc.) in the connecting
+user's `.bashrc`/`.zshrc`.
+
+Key bindings are installed using fzf's own `eval "$(fzf --bash)"` / `source <(fzf --zsh)`
+integration rather than sourcing a static `key-bindings.*` file, since that file's location
+varies by package manager (and, on macOS, by Homebrew prefix — `/opt/homebrew` on Apple
+Silicon vs `/usr/local` on Intel). Asking the `fzf` binary to print its own integration
+script sidesteps that entirely.
 
 ## Requirements
 
-- Debian (or a Debian-based distribution) — the package install task only runs when
-  `ansible_facts['distribution'] == 'Debian'`
-- The `fzf` apt package must ship `/usr/share/doc/fzf/examples/key-bindings.bash`
-  (true for Debian's packaged fzf)
+- Debian (or a Debian-based distribution), where the apt install task runs when
+  `ansible_facts['distribution'] == 'Debian'`, **or**
+- macOS, where the Homebrew install task runs when
+  `ansible_facts['os_family'] == 'Darwin'`
+  - [Homebrew](https://brew.sh/) must already be installed on the target
+  - The `community.general` collection (for the `community.general.homebrew` module)
+    installed alongside this one:
+    ```bash
+    ansible-galaxy collection install community.general
+    ```
+- A login shell of `bash` or `zsh` (detected via `ansible_facts['user_shell']`) — other
+  shells are skipped
 
 ## Role Variables
 
-None of this role's own. It relies on the built-in `ansible_user` magic variable
-(set from the connection/`remote_user`) to know whose `~/.bashrc` to edit.
+None of this role's own. It relies on the standard `ansible_facts['user_dir']` and
+`ansible_facts['user_shell']` facts (re-gathered as the connecting user, not
+become-escalated) to know whose dotfiles to edit and which shell block to install.
 
 ## Dependencies
 
-None.
+None (role dependencies) — see Requirements above for the `community.general` collection
+dependency needed on macOS.
 
 ## Example Playbook
 

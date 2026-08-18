@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Installs fzf via apt and wires up its bash key bindings for the login user
+  description: Installs fzf (apt on Debian, Homebrew on macOS) and wires up its bash/zsh key bindings for the login user
   company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
@@ -13,11 +13,17 @@ galaxy_info:
     - name: Debian
       versions:
         - all
+    - name: MacOSX
+      versions:
+        - all
 
   galaxy_tags:
     - fzf
     - shell
     - bash
+    - zsh
     - debian
+    - macos
+    - homebrew
 
 dependencies: []

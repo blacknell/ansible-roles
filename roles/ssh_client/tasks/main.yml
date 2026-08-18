@@ -1,0 +1,54 @@
+---
+- name: Create SSH config directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.ssh/"
+    state: directory
+    mode: "0700"
+
+- name: add SSH public key to authorized_keys
+  when: ssh_authorized_key | length > 0
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ ssh_authorized_key }}"
+    state: present
+
+- name: configure SSH client config global rules
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - GLOBAL RULES"
+    block: |
+      IgnoreUnknown UseKeychain
+      UseKeychain yes
+      AddKeysToAgent yes
+      FingerprintHash md5
+
+- name: configure SSH client config hosts rules
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - HOSTS RULES"
+    block: "{{ ssh_config_hosts_block }}"
+
+- name: configure SSH client to use the 1password agent for authentication
+  when: ansible_facts['os_family'] == 'Darwin'
+  blockinfile:
+    prepend_newline: true
+    path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - 1PASSWORD AGENT"
+    block: |
+      Match host * exec "test -z $SSH_TTY"
+        IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+
+- name: Define .zshrc 1password agent
+  when: ansible_facts['os_family'] == 'Darwin'
+  blockinfile:
+    prepend_newline: true
+    path: ~/.zshrc
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - 1PASSWORD AGENT"
+    block: |
+      # only point at the local 1Password agent if we're not in an SSH session
+      # (an SSH session with agent forwarding will already have SSH_AUTH_SOCK set)
+      if [ -z "$SSH_CLIENT" ] && [ -z "$SSH_TTY" ]; then
+        export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+      fi
