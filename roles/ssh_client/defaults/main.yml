@@ -1,1 +1,3 @@
 ---
+ssh_config_hosts_block: "{{ lookup('ansible.builtin.file', 'config-hosts') }}"
+ssh_authorized_key: ""   # deliberately empty by default - every calling playbook must supply their own key. Do not set this here
