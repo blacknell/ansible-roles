@@ -1,38 +1,60 @@
-Role Name
-=========
+# ansible-role-syncthing
 
-A brief description of the role goes here.
+Installs [Syncthing](https://syncthing.net/) via Homebrew on macOS clients and keeps it
+up to date, restarting the Homebrew service whenever a new version is installed.
 
-Requirements
-------------
+## Requirements
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- macOS — every task is gated on `ansible_facts['os_family'] == 'Darwin'` and is a no-op
+  on any other platform
+- [Homebrew](https://brew.sh/) already installed on the target
+- The `community.general` collection (for the `community.general.homebrew` and
+  `community.general.homebrew_services` modules) installed alongside this one:
+  ```bash
+  ansible-galaxy collection install community.general
+  ```
 
-Role Variables
---------------
+## Role Variables
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+None.
 
-Dependencies
-------------
+## Dependencies
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+None (role dependencies) — see Requirements above for the `community.general` collection
+dependency.
 
-Example Playbook
-----------------
+## Example Playbook
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+This role is distributed as part of the `blacknell.ansible_roles` collection. Add it to
+your `requirements.yml`:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+collections:
+  - name: https://github.com/blacknell/ansible-roles.git
+    type: git
+    version: main
+```
 
-License
--------
+Then reference it by its fully-qualified name:
 
-BSD
+```yaml
+- hosts: macs
+  roles:
+    - blacknell.ansible_roles.syncthing
+```
 
-Author Information
-------------------
+## Testing
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+A minimal local test playbook is provided under `tests/`:
+
+```bash
+ansible-playbook -i tests/inventory tests/test.yml
+```
+
+## License
+
+MIT
+
+## Author Information
+
+Paul Blacknell

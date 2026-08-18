@@ -1,7 +1,7 @@
 ---
 - name: Ensure Syncthing is installed and up to date
   when: ansible_facts['os_family'] == "Darwin"
-  homebrew:
+  community.general.homebrew:
     name: syncthing
     state: latest
     update_homebrew: true
