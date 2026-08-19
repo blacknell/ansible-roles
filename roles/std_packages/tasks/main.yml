@@ -47,6 +47,12 @@
       - rsync
     state: latest
 
+- name: install crond
+  apt:
+    name:
+      - cron
+    state: latest
+
 - name: set crond to log only failed processes
   when: not crond_log_processes
   notify: Restart crond
