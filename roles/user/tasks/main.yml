@@ -34,6 +34,7 @@
     owner: "{{ ansible_user }}"
     group: "{{ user_group }}"
     block: "{{ lookup('ansible.builtin.file', '.aliases_ls') }}"
+    create: true
 
 - name: Define miscellaneous aliases
   when: (ansible_facts['user_shell'] | basename) in ['bash', 'zsh']
@@ -48,6 +49,7 @@
     owner: "{{ ansible_user }}"
     group: "{{ user_group }}"
     block: "{{ lookup('ansible.builtin.file', '.aliases_misc') }}"
+    create: true
 
 - name: Define .bashrc history settings
   when: (ansible_facts['user_shell'] | basename) == 'bash'
@@ -57,6 +59,7 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK - BASHRC HISTORY"
     owner: "{{ ansible_user }}"
     group: "{{ user_group }}"
+    create: true
     block: |
       if command -v pyenv 1>/dev/null 2>&1; then
         eval "$(pyenv init -)"
@@ -83,3 +86,4 @@
       setopt HIST_IGNORE_ALL_DUPS
       setopt HIST_SAVE_NO_DUPS
       setopt SHARE_HISTORY
+    create: true
