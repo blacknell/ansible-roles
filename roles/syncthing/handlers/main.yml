@@ -2,7 +2,7 @@
 # handlers file for syncthing
 
 - name: Restart Syncthing service
+  when: ansible_facts['os_family'] == "Darwin"
   community.general.homebrew_services:
-    when: ansible_facts['os_family'] == "Darwin"
     name: syncthing
     state: restarted
