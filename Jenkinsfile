@@ -43,8 +43,22 @@ pipeline {
                     ansible-galaxy collection install -r requirements.yml
                     # No --strict: warn_list rules are reported but don't fail
                     # the build; real violations exit non-zero and do.
-                    ansible-lint roles/
+                    # --sarif-file also writes machine-readable results for
+                    # Warnings NG, alongside the normal console output.
+                    ansible-lint --sarif-file ansible-lint.sarif roles/
                 '''
+            }
+            post {
+                always {
+                    // Publishes an "Ansible Lint" GitHub check with warning/error
+                    // counts and per-line annotations. Runs even if lint failed.
+                    recordIssues(
+                        enabledForFailure: true,
+                        tools: [sarif(pattern: 'ansible-lint.sarif',
+                                      id: 'ansible-lint',
+                                      name: 'Ansible Lint')]
+                    )
+                }
             }
         }
     }
