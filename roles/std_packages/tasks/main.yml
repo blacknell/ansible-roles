@@ -2,7 +2,7 @@
 - name: set time zone
   notify: Restart crond
   timezone:
-    name: "{{ timezone }}"
+    name: "{{ std_packages_timezone }}"
 
 - name: profile.d config files
   copy:
@@ -35,7 +35,7 @@
     state: latest
 
 - name: install iperf3
-  when: install_iperf3
+  when: std_packages_install_iperf3
   apt:
     name:
       - iperf3
@@ -54,7 +54,7 @@
     state: latest
 
 - name: set crond to log only failed processes
-  when: not crond_log_processes
+  when: not std_packages_crond_log_processes
   notify: Restart crond
   lineinfile:
     path: /etc/default/cron
@@ -62,7 +62,7 @@
     line: 'EXTRA_OPTS="-L 4"'
 
 - name: set crond to also log failed processes
-  when: crond_log_processes
+  when: std_packages_crond_log_processes
   notify: Restart crond
   lineinfile:
     path: /etc/default/cron

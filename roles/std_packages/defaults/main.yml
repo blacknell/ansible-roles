@@ -4,6 +4,6 @@
 # Defaults to false so this role doesn't assume a particular inventory group
 # layout.
 std_packages_define_apt_preferences: false
-install_iperf3: false
-crond_log_processes: false
-timezone: "Europe/London"
+std_packages_install_iperf3: false
+std_packages_crond_log_processes: false
+std_packages_timezone: "Europe/London"
