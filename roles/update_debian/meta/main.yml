@@ -1,7 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
   description: Updates all apt packages to latest, dist-upgrades the OS, and cleans up unused packages/cache
-  company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 

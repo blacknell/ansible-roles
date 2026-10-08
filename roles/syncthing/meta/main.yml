@@ -1,7 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
   description: Installs and keeps Syncthing up to date via Homebrew on macOS
-  company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 
