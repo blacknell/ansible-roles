@@ -1,0 +1,8 @@
+---
+profile: basic
+
+skip_list:
+  - name[casing]
+
+exclude_paths:
+  - .ansible/
