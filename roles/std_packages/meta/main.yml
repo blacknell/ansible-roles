@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Standard host baseline - timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, and crond logging verbosity
+  description: Standard host baseline packages
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 

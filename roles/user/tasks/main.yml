@@ -77,11 +77,11 @@
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ZSHRC HISTORY"
-    block: |      
+    block: |
       HISTSIZE=1000000
       SAVEHIST=1000000
-      
-      setopt HIST_IGNORE_SPACE           
+
+      setopt HIST_IGNORE_SPACE
       setopt HIST_IGNORE_DUPS
       setopt HIST_IGNORE_ALL_DUPS
       setopt HIST_SAVE_NO_DUPS
