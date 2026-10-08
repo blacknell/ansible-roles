@@ -50,7 +50,7 @@
   ansible.builtin.user:
     name: "{{ linux_user_id }}"
     groups: docker
-    append: yes
+    append: true
 
 - name: Enable & start daemon
   systemd:
