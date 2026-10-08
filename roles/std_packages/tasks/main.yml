@@ -13,7 +13,7 @@
     mode: '0644'
 
 - name: apt preference files
-  when: define_apt_preferences
+  when: std_packages_define_apt_preferences
   copy:
     src: apt/preferences.d/
     dest: /etc/apt/preferences.d/

@@ -17,7 +17,7 @@ optionally installs `iperf3`, and configures how verbosely `cron` logs to
 | Variable                | Required | Default          | Description                                                        |
 |--------------------------|----------|------------------|------------------------------------------------------------------------|
 | `timezone`               | No       | `Europe/London`  | Timezone name passed to the `timezone` module                          |
-| `define_apt_preferences` | No       | `false`          | When `true`, installs the apt preference pin files under `files/apt/preferences.d` |
+| `std_packages_define_apt_preferences` | No       | `false`          | When `true`, installs the apt preference pin files under `files/apt/preferences.d` |
 | `install_iperf3`         | No       | `false`          | When `true`, installs the `iperf3` package                             |
 | `crond_log_processes`    | No       | `false`          | When `false`, sets `cron` to log only failed processes (`-L 4`); when `true`, logs all processes (`-L 5`) |
 
@@ -48,7 +48,7 @@ Then reference it by its fully-qualified name:
   become: true
   vars:
     timezone: Europe/London
-    define_apt_preferences: true
+    std_packages_define_apt_preferences: true
     install_iperf3: true
   roles:
     - blacknell.ansible_roles.std_packages
