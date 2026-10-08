@@ -32,6 +32,21 @@ pipeline {
                 '''
             }
         }
+
+        stage('Lint roles') {
+            environment {
+                ANSIBLE_ROLES_PATH = "${WORKSPACE}/roles"
+            }
+            steps {
+                sh '''
+                    ansible-lint --version
+                    ansible-galaxy collection install -r requirements.yml
+                    # No --strict: warn_list rules are reported but don't fail
+                    # the build; real violations exit non-zero and do.
+                    ansible-lint roles/
+                '''
+            }
+        }
     }
 
     post {
