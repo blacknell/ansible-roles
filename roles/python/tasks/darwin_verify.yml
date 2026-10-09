@@ -1,0 +1,79 @@
+---
+- name: Verify and report
+  become: false
+  block:
+    # brew's libexec/bin only holds the unversioned names (python, pip ...);
+    # python3 resolves via <prefix>/bin. So check what each name runs, not one path.
+    - name: Check what a new login shell resolves python, python3 and pip to
+      when: python_manage_shell | bool
+      ansible.builtin.command:
+        argv:
+          - zsh
+          - -lic
+          - |
+            for c in python python3 pip; do echo "PYCHK $c=$(command -v $c)"; done
+            echo "PYCHK python_prefix=$(python -c 'import sys; print(sys.base_prefix)' 2>&1)"
+            echo "PYCHK python3_prefix=$(python3 -c 'import sys; print(sys.base_prefix)' 2>&1)"
+      register: python_shell_check
+      changed_when: false
+      check_mode: false
+
+    - name: Parse shell check
+      when: python_manage_shell | bool
+      ansible.builtin.set_fact:
+        python_resolved: >-
+          {{ dict(python_shell_check.stdout_lines
+                  | select('match', '^PYCHK ')
+                  | map('regex_replace', '^PYCHK ', '')
+                  | map('split', '=', 1)) }}
+
+    # In check mode the rc files haven't really changed yet, so this would
+    # always report the old Python - show it instead of failing.
+    - name: Show current Python (check mode)
+      when:
+        - python_manage_shell | bool
+        - ansible_check_mode
+      ansible.builtin.debug:
+        var: python_resolved
+
+    - name: Assert python, python3 and pip are the brew Python
+      when:
+        - python_manage_shell | bool
+        - not ansible_check_mode
+      ansible.builtin.assert:
+        that:
+          - python_resolved.python | default('') == python_brew_libexec_bin ~ '/python'
+          - python_resolved.pip | default('') == python_brew_libexec_bin ~ '/pip'
+          - ('/' ~ python_brew_formula ~ '/') in python_resolved.python_prefix | default('')
+          - ('/' ~ python_brew_formula ~ '/') in python_resolved.python3_prefix | default('')
+        fail_msg: "Not brew {{ python_brew_formula }}: {{ python_resolved }}"
+        success_msg: "python={{ python_resolved.python }} python3={{ python_resolved.python3 }} pip={{ python_resolved.pip }}"
+
+    - name: Find project venvs
+      ansible.builtin.find:
+        paths: "{{ python_venv_search_paths }}"
+        patterns: pyvenv.cfg
+        recurse: true
+        depth: "{{ python_venv_search_depth }}"
+        hidden: true
+      register: python_venvs
+
+    - name: Read each venv's base interpreter
+      ansible.builtin.command: grep -m1 '^home' {{ item.path | quote }}
+      loop: "{{ python_venvs.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      register: python_venv_homes
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Report venvs to rebuild on the stable brew path
+      ansible.builtin.debug:
+        msg:
+          base_interpreter: "{{ python_brew_interpreter }}"
+          rebuild: >-
+            {{ python_venv_homes.results
+               | rejectattr('stdout', 'equalto', 'home = ' ~ python_brew_opt ~ '/bin')
+               | map(attribute='item.path')
+               | map('dirname') | list }}

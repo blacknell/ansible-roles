@@ -1,0 +1,113 @@
+---
+# Only runs with --tags python_cleanup. Rebuild project venvs first: any built
+# on pyenv, python.org or a removed brew Python stops working after this.
+#
+# Only the python.org removal needs root. Everything is checked up front so a
+# missing sudo password stops the run before anything has been removed.
+
+- name: Find python.org install
+  when: python_cleanup_python_org | bool
+  become: false
+  block:
+    - name: Find /usr/local/bin symlinks into Python.framework
+      ansible.builtin.command: find /usr/local/bin -maxdepth 1 -type l -lname '*Python.framework*'
+      register: python_org_links
+      changed_when: false
+      check_mode: false
+
+    - name: Find python.org app folders
+      ansible.builtin.find:
+        paths: /Applications
+        patterns: "Python 3.*"
+        file_type: directory
+      register: python_org_apps
+
+    - name: Check for Python.framework
+      ansible.builtin.stat:
+        path: /Library/Frameworks/Python.framework
+      register: python_org_framework
+
+    - name: List python.org paths to remove
+      ansible.builtin.set_fact:
+        python_org_paths: >-
+          {{ python_org_links.stdout_lines
+             + (python_org_apps.files | map(attribute='path') | list)
+             + (['/Library/Frameworks/Python.framework'] if python_org_framework.stat.exists else []) }}
+
+- name: Check sudo is available for python.org removal
+  when:
+    - python_cleanup_python_org | bool
+    - python_org_paths | length > 0
+  block:
+    - name: Test sudo
+      become: true
+      ansible.builtin.command: /usr/bin/true
+      changed_when: false
+      check_mode: false
+  rescue:
+    - name: Stop before removing anything
+      ansible.builtin.fail:
+        msg: >-
+          Removing the python.org install ({{ python_org_paths | join(', ') }}) needs sudo.
+          Re-run with --ask-become-pass (-K), or set python_cleanup_python_org: false.
+
+- name: Remove pyenv
+  when: python_cleanup_pyenv | bool
+  become: false
+  block:
+    - name: Uninstall pyenv
+      community.general.homebrew:
+        name: [pyenv, pyenv-virtualenv]
+        state: absent
+        path: "{{ python_brew_prefix }}/bin"
+
+    - name: Remove ~/.pyenv
+      ansible.builtin.file:
+        path: "{{ ansible_facts['user_dir'] }}/.pyenv"
+        state: absent
+
+- name: Remove python.org install
+  when:
+    - python_cleanup_python_org | bool
+    - python_org_paths | length > 0
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ python_org_paths }}"
+
+- name: Remove brew Pythons nothing depends on
+  when: python_cleanup_unused_brew | bool
+  become: false
+  block:
+    - name: List installed brew formulae
+      ansible.builtin.command: "{{ python_brew }} list --formula"
+      register: python_brew_formulae
+      changed_when: false
+      check_mode: false
+
+    - name: Find dependents of each other brew Python
+      ansible.builtin.command: "{{ python_brew }} uses --installed {{ item }}"
+      loop: >-
+        {{ python_brew_formulae.stdout_lines
+           | select('match', '^python@3\.\d+$')
+           | reject('equalto', python_brew_formula) | list }}
+      register: python_brew_dependents
+      changed_when: false
+      check_mode: false
+
+    - name: Uninstall unused brew Pythons
+      community.general.homebrew:
+        name: "{{ item.item }}"
+        state: absent
+        path: "{{ python_brew_prefix }}/bin"
+      loop: "{{ python_brew_dependents.results | selectattr('stdout', 'equalto', '') | list }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Report brew Pythons kept because something needs them
+      ansible.builtin.debug:
+        msg: "{{ item.item }} kept, needed by: {{ item.stdout_lines | join(', ') }}"
+      loop: "{{ python_brew_dependents.results | rejectattr('stdout', 'equalto', '') | list }}"
+      loop_control:
+        label: "{{ item.item }}"

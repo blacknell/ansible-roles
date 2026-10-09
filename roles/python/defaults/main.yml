@@ -1,2 +1,29 @@
 ---
-# defaults file for python
+# --- Debian ---------------------------------------------------------------
+# Distro python3 plus what's needed to clone a repo and build a venv.
+python_debian_packages:
+  - git
+  - python3-venv
+  - python3-pip
+  - python3-debian
+  - python3-apt
+
+# --- macOS ----------------------------------------------------------------
+# The one Homebrew Python that python/python3/pip/pip3 resolve to.
+python_macos_version: "3.14"
+python_brew_prefix: "{{ '/opt/homebrew' if ansible_facts['architecture'] == 'arm64' else '/usr/local' }}"
+python_update_homebrew: true
+
+# Edit ~/.zshrc and ~/.zprofile: strip pyenv / python.org PATH setup and put
+# brew Python first. Set false for a Mac whose shell you don't want touched.
+python_manage_shell: true
+
+# Where to look for project venvs not built on the stable brew path (report only).
+python_venv_search_paths:
+  - "{{ ansible_facts['user_dir'] }}/GitHub"
+python_venv_search_depth: 4
+
+# One-off cleanup - only runs with --tags python_cleanup.
+python_cleanup_pyenv: true
+python_cleanup_python_org: true      # needs --ask-become-pass
+python_cleanup_unused_brew: true

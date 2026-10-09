@@ -1,0 +1,75 @@
+---
+- name: Install and configure brew Python
+  become: false
+  block:
+    - name: Install / upgrade {{ python_brew_formula }}
+      community.general.homebrew:
+        name: "{{ python_brew_formula }}"
+        state: latest
+        update_homebrew: "{{ python_update_homebrew }}"
+        path: "{{ python_brew_prefix }}/bin"
+
+    - name: Remove superseded kegs of {{ python_brew_formula }}
+      ansible.builtin.command: "{{ python_brew }} cleanup {{ python_brew_formula }}"
+      register: python_brew_cleanup
+      changed_when: "'Removing' in python_brew_cleanup.stdout"
+
+- name: Make brew Python the default in zsh
+  when: python_manage_shell | bool
+  become: false
+  block:
+    - name: Ensure shell rc files exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: touch
+        mode: "0644"
+        modification_time: preserve
+        access_time: preserve
+      loop:
+        - "{{ python_zshrc }}"
+        - "{{ python_zprofile }}"
+
+    - name: Remove pyenv init block from .zshrc
+      ansible.builtin.replace:
+        path: "{{ python_zshrc }}"
+        regexp: '^\s*if command -v pyenv.*\n(?:.*\n)*?\s*fi\n'
+        replace: ""
+        backup: true
+
+    - name: Remove any remaining pyenv lines from shell files
+      ansible.builtin.replace:
+        path: "{{ item }}"
+        regexp: '^.*(?:pyenv init|PYENV_ROOT|\.pyenv/).*\n'
+        replace: ""
+        backup: true
+      loop:
+        - "{{ python_zshrc }}"
+        - "{{ python_zprofile }}"
+
+    - name: Remove python.org installer PATH block from .zprofile
+      ansible.builtin.replace:
+        path: "{{ python_zprofile }}"
+        regexp: >-
+          ^# Setting PATH for Python 3\.\d+\n(?:# The original version is saved in .*\n)?PATH="/Library/Frameworks/Python\.framework/[^"]*"\nexport PATH\n
+        replace: ""
+        backup: true
+
+    - name: Remove any remaining python.org PATH lines
+      ansible.builtin.replace:
+        path: "{{ item }}"
+        regexp: '^.*Python\.framework/Versions.*\n'
+        replace: ""
+        backup: true
+      loop:
+        - "{{ python_zshrc }}"
+        - "{{ python_zprofile }}"
+
+    - name: Put brew Python first on PATH
+      ansible.builtin.blockinfile:
+        path: "{{ python_zprofile }}"
+        prepend_newline: true
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - PYTHON"
+        backup: true
+        block: |
+          # python, python3, pip, pip3 -> brew {{ python_brew_formula }}
+          export PATH="{{ python_brew_libexec_bin }}:$PATH"
