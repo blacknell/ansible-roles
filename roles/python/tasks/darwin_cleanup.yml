@@ -25,6 +25,7 @@
       ansible.builtin.command: find /usr/local/bin -maxdepth 1 -type l -lname '*Python.framework*'
       register: python_org_links
       changed_when: false
+      check_mode: false
 
     - name: Remove python.org symlinks
       ansible.builtin.file:
@@ -53,6 +54,7 @@
       ansible.builtin.command: "{{ python_brew }} list --formula"
       register: python_brew_formulae
       changed_when: false
+      check_mode: false
 
     - name: Find dependents of each other brew Python
       ansible.builtin.command: "{{ python_brew }} uses --installed {{ item }}"
@@ -62,6 +64,7 @@
            | reject('equalto', python_brew_formula) | list }}
       register: python_brew_dependents
       changed_when: false
+      check_mode: false
 
     - name: Uninstall unused brew Pythons
       community.general.homebrew:
