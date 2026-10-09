@@ -58,7 +58,7 @@ pipeline {
                                       id: 'ansible-lint',
                                       name: 'Ansible Lint')]
                     )
-                    // Sets the "code quality" README badge: total errors+warnings,
+                    // Sets the "lint issues" README badge: total errors+warnings,
                     // green for 0, yellow for warnings only, red for any errors.
                     script {
                         def counts = sh(returnStdout: true, script: """
@@ -85,7 +85,7 @@ EOF
                         """).trim().split()
                         def errors = counts[0] as int
                         def warnings = counts[1] as int
-                        def badge = addEmbeddableBadgeConfiguration(id: 'lint', subject: 'code quality')
+                        def badge = addEmbeddableBadgeConfiguration(id: 'lint', subject: 'lint issues')
                         if (errors < 0) {
                             badge.setStatus('unknown')
                             badge.setColor('lightgrey')
