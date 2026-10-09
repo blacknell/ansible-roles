@@ -58,6 +58,42 @@ pipeline {
                                       id: 'ansible-lint',
                                       name: 'Ansible Lint')]
                     )
+                    // Sets the "code quality" README badge: total errors+warnings,
+                    // green for 0, yellow for warnings only, red for any errors.
+                    script {
+                        def counts = sh(returnStdout: true, script: """
+                            python3 - 'ansible-lint.sarif' <<'EOF'
+import json, os, sys
+path = sys.argv[1]
+if not os.path.exists(path):
+    print("-1 -1"); sys.exit(0)
+# ansible-lint can report the same violation twice; count each unique
+# file/line/rule/message once, matching Warnings NG's de-duplication.
+seen = {}
+for run in json.load(open(path)).get("runs", []):
+    for result in run.get("results", []):
+        loc = (result.get("locations") or [{}])[0].get("physicalLocation", {})
+        key = (loc.get("artifactLocation", {}).get("uri"),
+               loc.get("region", {}).get("startLine"),
+               result.get("ruleId"),
+               result.get("message", {}).get("text"))
+        seen[key] = result.get("level", "warning")
+errors = sum(1 for level in seen.values() if level == "error")
+warnings = len(seen) - errors
+print(errors, warnings)
+EOF
+                        """).trim().split()
+                        def errors = counts[0] as int
+                        def warnings = counts[1] as int
+                        def badge = addEmbeddableBadgeConfiguration(id: 'lint', subject: 'code quality')
+                        if (errors < 0) {
+                            badge.setStatus('unknown')
+                            badge.setColor('lightgrey')
+                        } else {
+                            badge.setStatus("${errors + warnings}")
+                            badge.setColor(errors > 0 ? 'red' : (warnings > 0 ? 'yellow' : 'brightgreen'))
+                        }
+                    }
                 }
             }
         }
