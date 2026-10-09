@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Installs git, pip, and python3-venv for a working Python dev environment
+  description: Python baseline - distro python3, pip and venv on Debian; Homebrew Python as the single default on macOS
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 
@@ -12,11 +12,16 @@ galaxy_info:
     - name: Debian
       versions:
         - all
+    - name: MacOSX
+      versions:
+        - all
 
   galaxy_tags:
     - python
     - pip
     - venv
     - debian
+    - macos
+    - homebrew
 
 dependencies: []

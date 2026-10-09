@@ -1,6 +1,6 @@
 namespace: blacknell
 name: ansible_roles
-version: 1.3.0
+version: 1.4.0
 readme: README.md
 authors:
   - Paul Blacknell
@@ -11,6 +11,7 @@ tags:
   - infrastructure
   - homelab
   - debian
+  - macos
 repository: https://github.com/blacknell/ansible-roles
 issues: https://github.com/blacknell/ansible-roles/issues
 build_ignore: []

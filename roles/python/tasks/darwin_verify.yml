@@ -1,0 +1,46 @@
+---
+- name: Verify and report
+  become: false
+  block:
+    - name: Check what a new login shell resolves python3 to
+      when: python_manage_shell | bool
+      ansible.builtin.command: zsh -lic 'command -v python3; python3 --version'
+      register: python_shell_check
+      changed_when: false
+
+    - name: Assert python3 is the brew Python
+      when: python_manage_shell | bool
+      ansible.builtin.assert:
+        that:
+          - python_shell_check.stdout_lines[0] == python_brew_libexec_bin ~ '/python3'
+          - python_shell_check.stdout_lines[-1] is match('Python ' ~ python_macos_version | regex_escape ~ '\.')
+        fail_msg: "python3 is {{ python_shell_check.stdout_lines | join(' / ') }}"
+        success_msg: "python3 is {{ python_shell_check.stdout_lines | join(' / ') }}"
+
+    - name: Find project venvs
+      ansible.builtin.find:
+        paths: "{{ python_venv_search_paths }}"
+        patterns: pyvenv.cfg
+        recurse: true
+        depth: "{{ python_venv_search_depth }}"
+        hidden: true
+      register: python_venvs
+
+    - name: Read each venv's base interpreter
+      ansible.builtin.command: grep -m1 '^home' {{ item.path | quote }}
+      loop: "{{ python_venvs.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      register: python_venv_homes
+      changed_when: false
+      failed_when: false
+
+    - name: Report venvs to rebuild on the stable brew path
+      ansible.builtin.debug:
+        msg:
+          base_interpreter: "{{ python_brew_interpreter }}"
+          rebuild: >-
+            {{ python_venv_homes.results
+               | rejectattr('stdout', 'equalto', 'home = ' ~ python_brew_opt ~ '/bin')
+               | map(attribute='item.path')
+               | map('dirname') | list }}

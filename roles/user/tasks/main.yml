@@ -61,10 +61,6 @@
     group: "{{ user_group }}"
     create: true
     block: |
-      if command -v pyenv 1>/dev/null 2>&1; then
-        eval "$(pyenv init -)"
-      fi
-
       HISTSIZE=1000000
       HISTFILESIZE=1000000
       HISTCONTROL=ignorespace:erasedups
