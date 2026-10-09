@@ -24,7 +24,12 @@ Every run (tag `python`):
 One-off, only with `--tags python_cleanup` (tagged `never`):
 - uninstalls pyenv and deletes `~/.pyenv`
 - deletes the python.org install (`/Library/Frameworks/Python.framework`,
-  `/Applications/Python 3.x`, its `/usr/local/bin` links) - needs `--ask-become-pass`
+  `/Applications/Python 3.x`, its `/usr/local/bin` links) - needs sudo, so add
+  `--ask-become-pass` if your sudo needs a password. The role checks sudo works
+  before removing anything and stops with a clear message if it doesn't.
+
+Normal runs on macOS never need sudo: Homebrew and your shell files are handled
+as the connecting user (`become: false`), even under a `become: true` play.
 - uninstalls other brew `python@3.x` formulae that nothing depends on
 
 Homebrew tasks always run with `become: false`, so the role works under plays that set
