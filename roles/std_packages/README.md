@@ -16,10 +16,10 @@ optionally installs `iperf3`, and configures how verbosely `cron` logs to
 
 | Variable                | Required | Default          | Description                                                        |
 |--------------------------|----------|------------------|------------------------------------------------------------------------|
-| `timezone`               | No       | `Europe/London`  | Timezone name passed to the `timezone` module                          |
-| `define_apt_preferences` | No       | `false`          | When `true`, installs the apt preference pin files under `files/apt/preferences.d` |
-| `install_iperf3`         | No       | `false`          | When `true`, installs the `iperf3` package                             |
-| `crond_log_processes`    | No       | `false`          | When `false`, sets `cron` to log only failed processes (`-L 4`); when `true`, logs all processes (`-L 5`) |
+| `std_packages_timezone`               | No       | `Europe/London`  | std_packages_timezone name passed to the `std_packages_timezone` module                          |
+| `std_packages_define_apt_preferences` | No       | `false`          | When `true`, installs the apt preference pin files under `files/apt/preferences.d` |
+| `std_packages_install_iperf3`         | No       | `false`          | When `true`, installs the `iperf3` package                             |
+| `std_packages_crond_log_processes`    | No       | `false`          | When `false`, sets `cron` to log only failed processes (`-L 4`); when `true`, logs all processes (`-L 5`) |
 
 ## Dependencies
 
@@ -47,9 +47,9 @@ Then reference it by its fully-qualified name:
 - hosts: debian_hosts
   become: true
   vars:
-    timezone: Europe/London
-    define_apt_preferences: true
-    install_iperf3: true
+    std_packages_timezone: Europe/London
+    std_packages_define_apt_preferences: true
+    std_packages_install_iperf3: true
   roles:
     - blacknell.ansible_roles.std_packages
 ```

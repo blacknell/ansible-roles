@@ -61,10 +61,6 @@
     group: "{{ user_group }}"
     create: true
     block: |
-      if command -v pyenv 1>/dev/null 2>&1; then
-        eval "$(pyenv init -)"
-      fi
-
       HISTSIZE=1000000
       HISTFILESIZE=1000000
       HISTCONTROL=ignorespace:erasedups
@@ -77,11 +73,11 @@
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ZSHRC HISTORY"
-    block: |      
+    block: |
       HISTSIZE=1000000
       SAVEHIST=1000000
-      
-      setopt HIST_IGNORE_SPACE           
+
+      setopt HIST_IGNORE_SPACE
       setopt HIST_IGNORE_DUPS
       setopt HIST_IGNORE_ALL_DUPS
       setopt HIST_SAVE_NO_DUPS

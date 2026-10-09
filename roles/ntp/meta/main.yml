@@ -1,7 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
   description: Installs ntp and deploys a pool.ntp.org-based ntp.conf
-  company: false
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 

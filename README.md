@@ -1,4 +1,4 @@
-[![Build Status](https://ci.blacknell.co.uk/buildStatus/icon?job=ansible-roles%2Fmain&style=plastic&subject=main)](https://ci.blacknell.co.uk/job/ansible-roles/job/main/)
+[![Build Status](https://ci.blacknell.co.uk/buildStatus/icon?job=ansible-roles%2Fmain&style=plastic&subject=main)](https://ci.blacknell.co.uk/job/ansible-roles/job/main/) [![Build Status](https://ci.blacknell.co.uk/buildStatus/icon?job=ansible-roles%2Fdevelop&subject=develop)](https://ci.blacknell.co.uk/job/ansible-roles/job/develop/) [![Lint Issues](https://ci.blacknell.co.uk/buildStatus/icon?job=ansible-roles%2Fmain&config=lint&style=plastic)](https://ci.blacknell.co.uk/job/ansible-roles/job/main/lastBuild/ansible-lint/)
 # ansible-roles
 
 A shared collection of reusable, standalone Ansible roles, packaged as the
@@ -86,7 +86,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [logrotate](roles/logrotate) | Installs logrotate with configs for a fixed set of services |
 | [user](roles/user) | Per-user dotfiles (bash/zsh aliases, bash history settings) across macOS and Debian |
 | [syncthing](roles/syncthing) | Installs and updates Syncthing via Homebrew on macOS |
-| [python](roles/python) | Installs git, pip, and python3-venv |
+| [python](roles/python) | Debian: distro python3 with git, pip and venv. macOS: Homebrew Python as the single default, kept patched |
 | [btop](roles/btop) | Installs btop (apt on Debian, Homebrew on macOS) |
 
 ## License

@@ -1,11 +1,36 @@
 ---
-# tasks file for python
-- name: Install git, pip & venv
-  apt:
-    name:
-      - git
-      - python3-venv
-      - python3-pip
-      - python3-debian
-      - python3-apt
-    state: latest
+- name: Check the platform is supported
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] in ['Debian', 'Darwin']
+    fail_msg: "python role supports Debian and macOS, not {{ ansible_facts['os_family'] }}"
+    quiet: true
+  tags: [always]
+
+# Homebrew refuses to run as root, and under a become: true play user_dir would
+# be root's home. Re-gather facts as ansible_user, as the user role does.
+- name: Re-gather facts as ansible_user (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  become: false
+  ansible.builtin.setup:
+  tags: [always]
+
+- name: Install Python (Debian)
+  when: ansible_facts['os_family'] == 'Debian'
+  ansible.builtin.import_tasks: debian.yml
+  tags: [python]
+
+- name: Install Python (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  ansible.builtin.import_tasks: darwin.yml
+  tags: [python]
+
+- name: Remove pyenv, python.org and unused brew Pythons (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  ansible.builtin.import_tasks: darwin_cleanup.yml
+  tags: [python_cleanup, never]
+
+- name: Verify and report (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  ansible.builtin.import_tasks: darwin_verify.yml
+  tags: [python, python_cleanup]

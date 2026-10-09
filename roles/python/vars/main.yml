@@ -1,2 +1,10 @@
 ---
-# vars file for python
+python_brew: "{{ python_brew_prefix }}/bin/brew"
+python_brew_formula: "python@{{ python_macos_version }}"
+# Stable path that survives patch upgrades - build venvs / PyCharm interpreters from this.
+python_brew_opt: "{{ python_brew_prefix }}/opt/{{ python_brew_formula }}"
+python_brew_interpreter: "{{ python_brew_opt }}/bin/python{{ python_macos_version }}"
+# Unversioned python/python3/pip/pip3 symlinks that brew ships but doesn't link.
+python_brew_libexec_bin: "{{ python_brew_opt }}/libexec/bin"
+python_zshrc: "{{ ansible_facts['user_dir'] }}/.zshrc"
+python_zprofile: "{{ ansible_facts['user_dir'] }}/.zprofile"
