@@ -1,9 +1,45 @@
 ---
 # Required, no defaults (see meta/argument_specs.yml):
 #   jenkins_docker_user          user that owns the compose project and runs backups
-#   jenkins_docker_compose_dir   folder holding docker-compose.yml etc.
+#   jenkins_docker_compose_dir   folder the compose project is written to
 #   jenkins_docker_volume        docker volume mounted as JENKINS_HOME
-#   jenkins_docker_backup_dir    where backup tarballs are written
+
+# --- Install ----------------------------------------------------------------
+
+# Compose project name. The volume keeps its exact name either way, but
+# changing the project name on an existing install recreates the container.
+jenkins_docker_compose_project: "{{ jenkins_docker_compose_dir | basename }}"
+
+# Jenkins base image the controller is built from
+jenkins_docker_image: jenkins/jenkins:lts-jdk21
+
+# Plugins baked into the image, as plugin-id or plugin-id:version
+jenkins_docker_plugins: []
+
+# Extra Debian packages installed into the image (e.g. docker.io, git)
+jenkins_docker_apt_packages: []
+
+jenkins_docker_container_name: jenkins
+# Run the container as this user ("" = the image's own jenkins user)
+jenkins_docker_container_user: ""
+jenkins_docker_ports:
+  - "8080:8080"
+  - "50000:50000"
+jenkins_docker_environment: {}
+jenkins_docker_restart_policy: unless-stopped
+
+# Mount the host's Docker socket so builds can run docker
+jenkins_docker_docker_socket: false
+
+# Configuration as Code: mount <compose_dir>/casc and point CASC_JENKINS_CONFIG at it
+jenkins_docker_casc: false
+# Optional folder on the Ansible controller whose files are copied into casc/
+jenkins_docker_casc_src: ""
+
+# --- Backups ----------------------------------------------------------------
+
+# Where backup tarballs are written
+jenkins_docker_backup_dir: "{{ jenkins_docker_compose_dir }}/backups"
 
 # Backup script and log
 jenkins_docker_backup_script: /usr/local/bin/jenkins-docker-backup

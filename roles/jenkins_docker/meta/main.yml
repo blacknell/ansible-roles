@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Scheduled and on-demand backups for a Jenkins controller running under Docker
+  description: Installs a Jenkins controller under Docker Compose, with scheduled and on-demand backups
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 
@@ -22,6 +22,7 @@ galaxy_info:
   galaxy_tags:
     - jenkins
     - docker
+    - compose
     - backup
     - cron
 

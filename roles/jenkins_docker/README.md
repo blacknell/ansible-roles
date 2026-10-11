@@ -1,9 +1,18 @@
 # ansible-role-jenkins_docker
 
-Scheduled and on-demand backups for a [Jenkins](https://www.jenkins.io/) controller running
-under Docker (typically Docker Compose), with `JENKINS_HOME` on a named Docker volume.
+Installs and backs up a [Jenkins](https://www.jenkins.io/) controller running under
+Docker Compose, with `JENKINS_HOME` on a named Docker volume.
 
-Each backup writes two tarballs to `jenkins_docker_backup_dir`:
+**Install** writes a compose project to `jenkins_docker_compose_dir` – `docker-compose.yml`,
+a `Dockerfile` built on the Jenkins image, `plugins.txt` and an optional `casc/` folder for
+Configuration as Code – then builds the image and starts the container. The image is
+rebuilt only when one of those files changes, and compose recreates the container when
+the image or its settings change. Plugins already installed in `JENKINS_HOME` are left
+alone: removing a plugin from the list stops it being baked into the image, but you
+still uninstall it in Jenkins.
+
+**Backups** write two tarballs to `jenkins_docker_backup_dir`, nightly from cron or on
+demand:
 
 - `jenkins-home-<stamp>.tar.gz` – the `JENKINS_HOME` volume, minus rebuildable folders
   (`workspace`, `caches`, `war`, `updates`). It's made in a throwaway container, so the
@@ -18,58 +27,87 @@ the home tarball is smaller than `jenkins_docker_backup_min_home_bytes`.
 
 ## Requirements
 
-- Linux host with Docker, `flock` (util-linux) and GNU coreutils
+- Linux host with Docker and the Compose plugin (`docker compose`), `flock` (util-linux)
+  and GNU coreutils
 - `jenkins_docker_user` can run `docker` (usually: is in the `docker` group)
-- sudo for `backup_install` – it writes the script, log file and backup folder. The play
-  doesn't need `become: true`; the tasks escalate as needed
-- Ansible core >= 2.15
+- sudo for `install` and `backup_install`. The play doesn't need `become: true`; the
+  tasks escalate as needed
+- Ansible core >= 2.15 and the `community.docker` collection
 - One Jenkins instance per host (the script path and cron entry name are single values)
 
 ## Role Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `jenkins_docker_user` | Yes | none | User that owns the compose project and runs backups |
-| `jenkins_docker_compose_dir` | Yes | none | Folder holding `docker-compose.yml`, Dockerfile, etc. |
-| `jenkins_docker_volume` | Yes | none | Docker volume mounted as `JENKINS_HOME` |
-| `jenkins_docker_backup_dir` | Yes | none | Where the tarballs are written |
-| `jenkins_docker_backup_script` | No | `/usr/local/bin/jenkins-docker-backup` | Where the backup script is installed |
-| `jenkins_docker_backup_log` | No | `/var/log/jenkins-docker-backup.log` | Log appended to by scheduled and manual runs |
-| `jenkins_docker_backup_image` | No | `debian:trixie-slim` | Image used to tar the volume (needs GNU tar) |
-| `jenkins_docker_backup_stamp_format` | No | `%Y%m%d-%H%M%S` | `date` format for the filename stamp (no spaces or slashes) |
-| `jenkins_docker_backup_keep_days` | No | `7` | Local tarballs older than this are deleted |
-| `jenkins_docker_backup_min_home_bytes` | No | `1048576` | A home tarball smaller than this fails the backup |
-| `jenkins_docker_backup_cron` | No | `true` | Schedule the nightly backup |
-| `jenkins_docker_backup_cron_name` | No | `jenkins backup` | Name of the cron entry |
-| `jenkins_docker_backup_cron_hour` / `_minute` | No | `"3"` / `"15"` | Cron schedule |
-| `jenkins_docker_backup_excludes` | No | `[workspace, caches, war, updates]` | Paths relative to `JENKINS_HOME` left out of the backup |
-| `jenkins_docker_backup_extra_excludes` | No | `[]` | Extra excludes added to the list above |
-| `jenkins_docker_backup_config` | No | `true` | Also tar the compose folder |
-| `jenkins_docker_backup_config_excludes` | No | `[.git]` | Paths relative to the compose folder left out of the config tarball |
+### Required
 
-The four required variables have no defaults; `meta/argument_specs.yml` makes the role
-stop with a clear error if any is missing. If the backup folder is inside the compose folder,
-it's left out of the config tarball automatically.
+| Variable | Description |
+|---|---|
+| `jenkins_docker_user` | User that owns the compose project and runs backups |
+| `jenkins_docker_compose_dir` | Folder the compose project is written to |
+| `jenkins_docker_volume` | Docker volume mounted as `JENKINS_HOME` – exact name, created if missing |
 
-Settings are written into the backup script at install time. After changing any of them,
-run `backup_install` again; `backup_now` uses the installed script as it is.
+These have no defaults; `meta/argument_specs.yml` makes the role stop with a clear error
+if any is missing. Taking over an existing install? Set `jenkins_docker_volume` to the
+volume's current name (`docker volume ls`), or Jenkins starts with an empty home.
+
+### Install
+
+| Variable | Default | Description |
+|---|---|---|
+| `jenkins_docker_compose_project` | basename of `jenkins_docker_compose_dir` | Compose project name |
+| `jenkins_docker_image` | `jenkins/jenkins:lts-jdk21` | Base image the controller is built from |
+| `jenkins_docker_plugins` | `[]` | Plugins baked into the image, as `id` or `id:version` |
+| `jenkins_docker_apt_packages` | `[]` | Extra Debian packages installed into the image |
+| `jenkins_docker_container_name` | `jenkins` | Container name |
+| `jenkins_docker_container_user` | `""` | User the container runs as (`""` = the image's `jenkins` user) |
+| `jenkins_docker_ports` | `["8080:8080", "50000:50000"]` | Published ports |
+| `jenkins_docker_environment` | `{}` | Extra environment variables |
+| `jenkins_docker_restart_policy` | `unless-stopped` | Compose restart policy |
+| `jenkins_docker_docker_socket` | `false` | Mount `/var/run/docker.sock` so builds can run `docker` |
+| `jenkins_docker_casc` | `false` | Mount `<compose_dir>/casc` and set `CASC_JENKINS_CONFIG` to it |
+| `jenkins_docker_casc_src` | `""` | Folder on the Ansible controller whose files are copied into `casc/` (Jenkins is restarted when they change) |
+
+### Backups
+
+| Variable | Default | Description |
+|---|---|---|
+| `jenkins_docker_backup_dir` | `<compose_dir>/backups` | Where the tarballs are written |
+| `jenkins_docker_backup_script` | `/usr/local/bin/jenkins-docker-backup` | Where the backup script is installed |
+| `jenkins_docker_backup_log` | `/var/log/jenkins-docker-backup.log` | Log appended to by scheduled and manual runs |
+| `jenkins_docker_backup_image` | `debian:trixie-slim` | Image used to tar the volume (needs GNU tar) |
+| `jenkins_docker_backup_stamp_format` | `%Y%m%d-%H%M%S` | `date` format for the filename stamp (no spaces or slashes) |
+| `jenkins_docker_backup_keep_days` | `7` | Local tarballs older than this are deleted |
+| `jenkins_docker_backup_min_home_bytes` | `1048576` | A home tarball smaller than this fails the backup |
+| `jenkins_docker_backup_cron` | `true` | Schedule the nightly backup |
+| `jenkins_docker_backup_cron_name` | `jenkins backup` | Name of the cron entry |
+| `jenkins_docker_backup_cron_hour` / `_minute` | `"3"` / `"15"` | Cron schedule |
+| `jenkins_docker_backup_excludes` | `[workspace, caches, war, updates]` | Paths relative to `JENKINS_HOME` left out of the backup |
+| `jenkins_docker_backup_extra_excludes` | `[]` | Extra excludes added to the list above |
+| `jenkins_docker_backup_config` | `true` | Also tar the compose folder |
+| `jenkins_docker_backup_config_excludes` | `[.git]` | Paths relative to the compose folder left out of the config tarball |
+
+If the backup folder is inside the compose folder, it's left out of the config tarball and
+the image build context automatically.
+
+Backup settings are written into the backup script at install time. After changing any of
+them, run `backup_install` again; `backup_now` uses the installed script as it is.
 
 ## Entry Points
 
 | Entry point | Tag (via `main`) | What it does |
 |---|---|---|
+| `install` | `install` | Compose folder, `docker-compose.yml`, `Dockerfile`, `plugins.txt`, `casc/`; builds the image when they change and starts Jenkins |
 | `backup_install` | `backup_install` | Backup folder, log file, script and cron entry |
-| `backup_now` | `backup_now` | Checks the install, runs a backup as `jenkins_docker_user` and verifies the tarballs. Installs nothing. |
+| `backup_now` | `backup_now` | Checks the backup install, runs a backup as `jenkins_docker_user` and verifies the tarballs. Installs nothing. |
 
-`main` runs `backup_install`. `backup_now` only runs when asked for (`--tags backup_now`
-or `tasks_from: backup_now`).
+`main` runs `install` then `backup_install`. `backup_now` only runs when asked for
+(`--tags backup_now` or `tasks_from: backup_now`).
 
 Tasks that act as `jenkins_docker_user` only use `become` when the play isn't already
-connected as that user, so `backup_now` needs no sudo when you connect as the Jenkins user.
+connected as that user, so `backup_now` needs no sudo when you connect as that user.
 
 ## Dependencies
 
-None.
+None (the `community.docker` collection must be installed).
 
 ## Example Playbook
 
@@ -81,6 +119,7 @@ collections:
   - name: https://github.com/blacknell/ansible-roles.git
     type: git
     version: main
+  - name: community.docker
 ```
 
 Then reference it by its fully-qualified name:
@@ -91,14 +130,20 @@ Then reference it by its fully-qualified name:
     jenkins_docker_user: jenkins
     jenkins_docker_compose_dir: /srv/jenkins
     jenkins_docker_volume: jenkins_jenkins-data
-    jenkins_docker_backup_dir: /srv/jenkins-backups
+    jenkins_docker_image: jenkins/jenkins:lts-jdk21
+    jenkins_docker_plugins:
+      - configuration-as-code
+      - workflow-aggregator
+    jenkins_docker_casc: true
+    jenkins_docker_casc_src: files/jenkins/casc
   roles:
     - blacknell.ansible_roles.jenkins_docker
 ```
 
 ```bash
-ansible-playbook -i inventory jenkins.yml -K                    # install / refresh
-ansible-playbook -i inventory jenkins.yml --tags backup_now     # back up now
+ansible-playbook -i inventory jenkins.yml -K                      # install + backups
+ansible-playbook -i inventory jenkins.yml --tags install -K       # Jenkins only
+ansible-playbook -i inventory jenkins.yml --tags backup_now       # back up now
 ```
 
 Or call an entry point directly, e.g. to take a backup before an upgrade:

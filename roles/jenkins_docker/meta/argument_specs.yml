@@ -1,7 +1,7 @@
 ---
 argument_specs:
   main:
-    short_description: Install backups (default) or run one (tag backup_now)
+    short_description: Install Jenkins and its backups (default), or run a backup (tag backup_now)
     options: &all_options
       jenkins_docker_user:
         type: str
@@ -10,15 +10,64 @@ argument_specs:
       jenkins_docker_compose_dir:
         type: path
         required: true
-        description: Folder holding docker-compose.yml, Dockerfile and related config.
+        description: Folder the compose project (docker-compose.yml, Dockerfile, plugins.txt, casc) is written to.
       jenkins_docker_volume:
         type: str
         required: true
-        description: Docker volume mounted as JENKINS_HOME.
+        description: Docker volume mounted as JENKINS_HOME (exact name; created if missing).
+      jenkins_docker_compose_project:
+        type: str
+        description: Compose project name. Defaults to the basename of jenkins_docker_compose_dir.
+      jenkins_docker_image:
+        type: str
+        default: jenkins/jenkins:lts-jdk21
+        description: Jenkins base image the controller is built from.
+      jenkins_docker_plugins:
+        type: list
+        elements: str
+        default: []
+        description: Plugins baked into the image, as plugin-id or plugin-id:version.
+      jenkins_docker_apt_packages:
+        type: list
+        elements: str
+        default: []
+        description: Extra Debian packages installed into the image.
+      jenkins_docker_container_name:
+        type: str
+        default: jenkins
+        description: Container name.
+      jenkins_docker_container_user:
+        type: str
+        default: ""
+        description: User the container runs as; empty for the image's jenkins user.
+      jenkins_docker_ports:
+        type: list
+        elements: str
+        default: ["8080:8080", "50000:50000"]
+        description: Published ports, in compose host:container form.
+      jenkins_docker_environment:
+        type: dict
+        default: {}
+        description: Extra environment variables for the container.
+      jenkins_docker_restart_policy:
+        type: str
+        default: unless-stopped
+        description: Compose restart policy.
+      jenkins_docker_docker_socket:
+        type: bool
+        default: false
+        description: Mount /var/run/docker.sock so builds can run docker.
+      jenkins_docker_casc:
+        type: bool
+        default: false
+        description: Mount <compose_dir>/casc and set CASC_JENKINS_CONFIG to it.
+      jenkins_docker_casc_src:
+        type: str
+        default: ""
+        description: Folder on the Ansible controller whose files are copied into casc/.
       jenkins_docker_backup_dir:
         type: path
-        required: true
-        description: Folder the backup tarballs are written to.
+        description: Folder the backup tarballs are written to. Defaults to <compose_dir>/backups.
       jenkins_docker_backup_script:
         type: path
         default: /usr/local/bin/jenkins-docker-backup
@@ -78,6 +127,10 @@ argument_specs:
         elements: str
         default: [.git]
         description: Paths relative to the compose folder left out of the config tarball.
+
+  install:
+    short_description: Write the compose project, build the image and start Jenkins
+    options: *all_options
 
   backup_install:
     short_description: Install the backup script, log file and nightly cron entry
