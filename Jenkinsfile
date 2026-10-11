@@ -60,7 +60,7 @@ pipeline {
             steps {
                 sh '''
                     ansible-lint --version
-                    ansible-galaxy collection install -r requirements.yml
+                    ansible-galaxy collection install -r requirements.yml --force
                     # No --strict: warn_list rules are reported but don't fail
                     # the build; real violations exit non-zero and do.
                     # --sarif-file also writes machine-readable results for
