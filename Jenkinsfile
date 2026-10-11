@@ -14,13 +14,13 @@ pipeline {
 
         stage('Install tooling') {
             steps {
-                // Latest ansible-lint (and the ansible-core it pulls in) from pip,
-                // rather than the agent's apt packages, so CI tracks the same
-                // current release as a local brew install. Reused across builds,
+                // Latest ansible (full package, incl. community collections, as the
+                // old apt package had) and ansible-lint from pip, rather than the
+                // agent's apt packages, so CI tracks current releases. Reused across builds,
                 // upgraded each run. PATH above puts it ahead of system ansible.
                 sh '''
                     python3 -m venv .ci-venv
-                    .ci-venv/bin/pip install --quiet --upgrade pip ansible-lint
+                    .ci-venv/bin/pip install --quiet --upgrade pip ansible ansible-lint
                     ansible --version
                     ansible-lint --version
                 '''
