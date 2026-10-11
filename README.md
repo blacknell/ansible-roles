@@ -88,6 +88,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [syncthing](roles/syncthing) | Installs and updates Syncthing via Homebrew on macOS |
 | [python](roles/python) | Debian: distro python3 with git, pip and venv. macOS: Homebrew Python as the single default, kept patched |
 | [btop](roles/btop) | Installs btop (apt on Debian, Homebrew on macOS) |
+| [jenkins_docker](roles/jenkins_docker) | Scheduled and on-demand backups of a Jenkins controller running under Docker |
 
 ## License
 

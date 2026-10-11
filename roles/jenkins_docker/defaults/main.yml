@@ -1,0 +1,42 @@
+---
+# Required, no defaults (see meta/argument_specs.yml):
+#   jenkins_docker_user          user that owns the compose project and runs backups
+#   jenkins_docker_compose_dir   folder holding docker-compose.yml etc.
+#   jenkins_docker_volume        docker volume mounted as JENKINS_HOME
+#   jenkins_docker_backup_dir    where backup tarballs are written
+
+# Backup script and log
+jenkins_docker_backup_script: /usr/local/bin/jenkins-docker-backup
+jenkins_docker_backup_log: /var/log/jenkins-docker-backup.log
+
+# Image used to tar the volume (needs GNU tar)
+jenkins_docker_backup_image: debian:trixie-slim
+
+# Timestamp in the filenames (date(1) format; no spaces or slashes).
+# Default gives jenkins-home-20261021-162836.tar.gz
+jenkins_docker_backup_stamp_format: "%Y%m%d-%H%M%S"
+
+# Delete local tarballs older than this many days
+jenkins_docker_backup_keep_days: 7
+
+# A home tarball smaller than this is treated as a failed backup
+jenkins_docker_backup_min_home_bytes: 1048576
+
+# Nightly schedule, run as jenkins_docker_user
+jenkins_docker_backup_cron: true
+jenkins_docker_backup_cron_name: jenkins backup
+jenkins_docker_backup_cron_hour: "3"
+jenkins_docker_backup_cron_minute: "15"
+
+# Rebuildable folders left out of the JENKINS_HOME tarball
+jenkins_docker_backup_excludes:
+  - workspace
+  - caches
+  - war
+  - updates
+jenkins_docker_backup_extra_excludes: []
+
+# Also tar the compose folder (compose file, Dockerfile, casc, ...)
+jenkins_docker_backup_config: true
+jenkins_docker_backup_config_excludes:
+  - .git

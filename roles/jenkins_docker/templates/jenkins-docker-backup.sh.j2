@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Backs up the Jenkins home volume {{ jenkins_docker_volume }}
+# {% if jenkins_docker_backup_config | bool %}and the compose folder {{ jenkins_docker_compose_dir }} {% endif %}
+# to {{ jenkins_docker_backup_dir }}. Exits non-zero if anything is wrong.
+set -euo pipefail
+
+BACKUP_DIR={{ jenkins_docker_backup_dir | quote }}
+COMPOSE_DIR={{ jenkins_docker_compose_dir | quote }}
+VOLUME={{ jenkins_docker_volume | quote }}
+IMAGE={{ jenkins_docker_backup_image | quote }}
+KEEP_DAYS={{ jenkins_docker_backup_keep_days | int }}
+MIN_HOME_BYTES={{ jenkins_docker_backup_min_home_bytes | int }}
+HOME_EXCLUDES=(
+{% for item in jenkins_docker_backup_excludes + jenkins_docker_backup_extra_excludes %}
+  --exclude={{ ('./' ~ item) | quote }}
+{% endfor %}
+)
+{% if jenkins_docker_backup_config | bool %}
+{% set backup_rel = jenkins_docker_backup_dir | relpath(jenkins_docker_compose_dir) %}
+CONFIG_EXCLUDES=(
+{% for item in jenkins_docker_backup_config_excludes %}
+  --exclude={{ ('./' ~ item) | quote }}
+{% endfor %}
+{% if not backup_rel.startswith('..') %}
+  --exclude={{ ('./' ~ backup_rel) | quote }}
+{% endif %}
+)
+{% endif %}
+
+STAMP=$(date {{ ('+' ~ jenkins_docker_backup_stamp_format) | quote }})
+HOME_TAR="jenkins-home-$STAMP.tar.gz"
+CONFIG_TAR="jenkins-config-$STAMP.tar.gz"
+UIDGID="$(id -u):$(id -g)"
+
+fail() { echo "$(date -Is) backup $STAMP FAILED: $*" >&2; exit 1; }
+
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
+
+# Only one backup at a time (cron and a manual run could overlap)
+exec 9>"$BACKUP_DIR/.lock"
+flock -n 9 || fail "another backup is already running"
+
+# A wrong volume name would make docker silently create an empty one
+docker volume inspect "$VOLUME" >/dev/null 2>&1 || fail "docker volume $VOLUME not found"
+
+# JENKINS_HOME: tar runs as root in a throwaway container so it can read
+# everything, then hands the file to the calling user with 600 perms
+# (it contains credentials and keys). tar exit 1 = files changed while
+# reading, which is expected on a live Jenkins.
+docker run --rm \
+  -v "$VOLUME":/data:ro \
+  -v "$BACKUP_DIR":/backups \
+  -e HOME_TAR="$HOME_TAR" \
+  -e UIDGID="$UIDGID" \
+  "$IMAGE" sh -c '
+    tar czf "/backups/$HOME_TAR" -C /data --warning=no-file-changed "$@" .
+    rc=$?
+    if [ -e "/backups/$HOME_TAR" ]; then
+      chown "$UIDGID" "/backups/$HOME_TAR" && chmod 600 "/backups/$HOME_TAR" || exit 2
+    fi
+    [ "$rc" -le 1 ]' sh "${HOME_EXCLUDES[@]}" \
+  || fail "tar of volume $VOLUME failed"
+
+size=$(stat -c %s "$BACKUP_DIR/$HOME_TAR" 2>/dev/null || echo 0)
+if [ "$size" -lt "$MIN_HOME_BYTES" ]; then
+  # Rename so anything collecting jenkins-*.tar.gz skips it
+  [ -e "$BACKUP_DIR/$HOME_TAR" ] && mv "$BACKUP_DIR/$HOME_TAR" "$BACKUP_DIR/$HOME_TAR.too-small"
+  fail "$HOME_TAR is $size bytes, below the $MIN_HOME_BYTES byte minimum"
+fi
+
+{% if jenkins_docker_backup_config | bool %}
+# Compose folder: compose file, Dockerfile, casc etc.
+tar czf "$BACKUP_DIR/$CONFIG_TAR" -C "$COMPOSE_DIR" "${CONFIG_EXCLUDES[@]}" . \
+  || fail "tar of $COMPOSE_DIR failed"
+chmod 600 "$BACKUP_DIR/$CONFIG_TAR"
+{% else %}
+CONFIG_TAR=none
+{% endif %}
+
+# Local retention
+find "$BACKUP_DIR" -maxdepth 1 -name 'jenkins-*.tar.gz*' -mtime +"$KEEP_DAYS" -delete
+
+echo "$(date -Is) backup OK stamp=$STAMP home=$HOME_TAR bytes=$size config=$CONFIG_TAR"

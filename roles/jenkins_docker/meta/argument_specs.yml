@@ -1,0 +1,88 @@
+---
+argument_specs:
+  main:
+    short_description: Install backups (default) or run one (tag backup_now)
+    options: &all_options
+      jenkins_docker_user:
+        type: str
+        required: true
+        description: User that owns the compose project, is in the docker group and runs backups.
+      jenkins_docker_compose_dir:
+        type: path
+        required: true
+        description: Folder holding docker-compose.yml, Dockerfile and related config.
+      jenkins_docker_volume:
+        type: str
+        required: true
+        description: Docker volume mounted as JENKINS_HOME.
+      jenkins_docker_backup_dir:
+        type: path
+        required: true
+        description: Folder the backup tarballs are written to.
+      jenkins_docker_backup_script:
+        type: path
+        default: /usr/local/bin/jenkins-docker-backup
+        description: Where the backup script is installed.
+      jenkins_docker_backup_log:
+        type: path
+        default: /var/log/jenkins-docker-backup.log
+        description: Log file appended to by scheduled and manual runs.
+      jenkins_docker_backup_image:
+        type: str
+        default: debian:trixie-slim
+        description: Image used to tar the volume (needs GNU tar).
+      jenkins_docker_backup_stamp_format:
+        type: str
+        default: "%Y%m%d-%H%M%S"
+        description: date(1) format for the timestamp in the filenames (no spaces or slashes).
+      jenkins_docker_backup_keep_days:
+        type: int
+        default: 7
+        description: Local tarballs older than this are deleted.
+      jenkins_docker_backup_min_home_bytes:
+        type: int
+        default: 1048576
+        description: A JENKINS_HOME tarball smaller than this fails the backup.
+      jenkins_docker_backup_cron:
+        type: bool
+        default: true
+        description: Whether to schedule the nightly backup.
+      jenkins_docker_backup_cron_name:
+        type: str
+        default: jenkins backup
+        description: Name of the cron entry.
+      jenkins_docker_backup_cron_hour:
+        type: str
+        default: "3"
+        description: Cron hour field.
+      jenkins_docker_backup_cron_minute:
+        type: str
+        default: "15"
+        description: Cron minute field.
+      jenkins_docker_backup_excludes:
+        type: list
+        elements: str
+        default: [workspace, caches, war, updates]
+        description: Paths relative to JENKINS_HOME left out of the backup.
+      jenkins_docker_backup_extra_excludes:
+        type: list
+        elements: str
+        default: []
+        description: Extra excludes added to jenkins_docker_backup_excludes.
+      jenkins_docker_backup_config:
+        type: bool
+        default: true
+        description: Also tar jenkins_docker_compose_dir.
+      jenkins_docker_backup_config_excludes:
+        type: list
+        elements: str
+        default: [.git]
+        description: Paths relative to the compose folder left out of the config tarball.
+
+  backup_install:
+    short_description: Install the backup script, log file and nightly cron entry
+    options: *all_options
+
+  backup_now:
+    short_description: Run the installed backup now and verify the tarballs
+    options: *all_options

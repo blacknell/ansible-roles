@@ -1,0 +1,13 @@
+---
+# Each file can also be called directly:
+#   include_role: { name: jenkins_docker, tasks_from: backup_install }
+#   include_role: { name: jenkins_docker, tasks_from: backup_now }
+
+- name: Install backups
+  ansible.builtin.import_tasks: backup_install.yml
+  tags: [backup_install]
+
+# Only runs when asked for with --tags backup_now
+- name: Run a backup now
+  ansible.builtin.import_tasks: backup_now.yml
+  tags: [backup_now, never]

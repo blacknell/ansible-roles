@@ -1,0 +1,4 @@
+---
+# Only switch user when not already connected as jenkins_docker_user,
+# so a play connecting as that user needs no sudo for backup_now.
+__jenkins_docker_become: "{{ (ansible_facts['user_id'] | default('')) != jenkins_docker_user }}"
