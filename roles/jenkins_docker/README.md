@@ -141,10 +141,12 @@ Then reference it by its fully-qualified name:
 ```
 
 ```bash
-ansible-playbook -i inventory jenkins.yml -K                      # install + backups
-ansible-playbook -i inventory jenkins.yml --tags install -K       # Jenkins only
+ansible-playbook -i inventory jenkins.yml                         # install + backups
+ansible-playbook -i inventory jenkins.yml --tags install          # Jenkins only
 ansible-playbook -i inventory jenkins.yml --tags backup_now       # back up now
 ```
+
+Add `-K` if sudo on the host asks for a password.
 
 Or call an entry point directly, e.g. to take a backup before an upgrade:
 
