@@ -1,5 +1,10 @@
 # ansible-role-ntp
 
+> **Deprecated:** use [`timesync`](../timesync) instead. On Debian bookworm and
+> later the `ntp` package installs ntpsec, which reads `/etc/ntpsec/ntp.conf`,
+> so the `/etc/ntp.conf` this role deploys is ignored. Installing it also removes
+> systemd-timesyncd, Debian's default time client.
+
 Installs `ntp` and deploys a static `/etc/ntp.conf` configured to sync against
 the UK `pool.ntp.org` servers.
 

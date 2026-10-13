@@ -1,0 +1,17 @@
+---
+# NTP servers for systemd-timesyncd (NTP=). timesyncd uses one at a time and
+# moves to the next if it becomes unreachable. Override with a regional or
+# local pool in your playbook or group_vars.
+timesync_ntp_servers:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+
+# FallbackNTP= servers. Empty keeps Debian's compiled-in fallback
+# (0-3.debian.pool.ntp.org).
+timesync_fallback_ntp_servers: []
+
+# Drop-in file name. The numeric prefix orders it after vendor drop-ins such
+# as Raspberry Pi OS's /usr/lib/systemd/timesyncd.conf.d/40-rpi-sync.conf.
+timesync_dropin_name: 50-ansible.conf

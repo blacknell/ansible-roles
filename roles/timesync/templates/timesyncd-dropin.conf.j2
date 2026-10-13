@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# Role: blacknell.ansible_roles.timesync
+[Time]
+NTP={{ timesync_ntp_servers | join(' ') }}
+{% if timesync_fallback_ntp_servers | length > 0 %}
+FallbackNTP={{ timesync_fallback_ntp_servers | join(' ') }}
+{% endif %}

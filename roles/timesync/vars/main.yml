@@ -1,0 +1,12 @@
+---
+# Time daemons that conflict with systemd-timesyncd. All are purged.
+timesync_conflicting_packages:
+  - ntp
+  - ntpsec
+  - chrony
+  - openntpd
+
+# Files left behind by the old blacknell.ansible_roles.ntp role. They are not
+# owned by any package, so purging doesn't remove them.
+timesync_legacy_files:
+  - /etc/ntp.conf
