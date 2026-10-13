@@ -1,6 +1,0 @@
----
-
-- name: Restart NTP
-  service:
-    name: ntp
-    state: restarted
