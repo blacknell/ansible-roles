@@ -16,6 +16,10 @@ machines; use chrony for those.
   such as macOS (which syncs time with its own `timed` service) are skipped
   rather than failed. Facts must be gathered (`gather_facts: true`, the default).
 - Bookworm or later, where `systemd-timesyncd` is a separate package
+- Hosts with a package listed in `timesync_skip_if_installed` (`vars/main.yml`)
+  are skipped with a message. Currently that's `openmediavault`, which depends
+  on chrony (purging chrony would remove OMV) and manages its config itself.
+  Set NTP servers on those hosts in the OMV web UI under System → Date & Time.
 - Not for LXC/containers: timesyncd won't start there by design, because the
   container's clock comes from the host
 

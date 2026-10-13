@@ -1,6 +1,34 @@
 ---
 # Debian-only. Other platforms (e.g. macOS, which syncs time with its own
 # timed service) are skipped rather than failed, so later plays still run.
+#
+# Hosts with a package from timesync_skip_if_installed (e.g. openmediavault,
+# which depends on chrony and manages its config) are also skipped: purging
+# chrony there would remove the package that depends on it.
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Find packages that manage time sync themselves
+  ansible.builtin.set_fact:
+    timesync_blockers: >-
+      {{ timesync_skip_if_installed
+         | select('in', ansible_facts['packages'] | default({}))
+         | list }}
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Report hosts skipped because another package manages time sync
+  ansible.builtin.debug:
+    msg: >-
+      Skipping timesync on {{ inventory_hostname }}:
+      {{ timesync_blockers | join(', ') }} manages time sync here.
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - timesync_blockers | length > 0
+
 - name: Configure systemd-timesyncd on Debian
   ansible.builtin.include_tasks: debian.yml
-  when: ansible_facts['os_family'] == 'Debian'
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - timesync_blockers | length == 0

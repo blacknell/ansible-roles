@@ -10,3 +10,10 @@ timesync_conflicting_packages:
 # owned by any package, so purging doesn't remove them.
 timesync_legacy_files:
   - /etc/ntp.conf
+
+# If any of these packages are installed, the role skips the host. They manage
+# time sync themselves and depend on a daemon this role would purge.
+#   openmediavault: depends on chrony and writes /etc/chrony/chrony.conf from
+#   its own settings (System > Date & Time in the web UI).
+timesync_skip_if_installed:
+  - openmediavault
