@@ -1,0 +1,44 @@
+---
+- name: Remove conflicting time daemons
+  ansible.builtin.apt:
+    name: "{{ timesync_conflicting_packages }}"
+    state: absent
+    purge: true
+
+- name: Remove config files left by the old ntp role
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ timesync_legacy_files }}"
+
+- name: Install systemd-timesyncd
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: present
+  register: timesync_install
+
+- name: Create timesyncd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/timesyncd.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure timesyncd servers
+  ansible.builtin.template:
+    src: timesyncd-dropin.conf.j2
+    dest: "/etc/systemd/timesyncd.conf.d/{{ timesync_dropin_name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart timesyncd
+
+- name: Enable and start systemd-timesyncd
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+  # In --check mode a host without timesyncd only simulates the install, so the
+  # unit doesn't exist yet and systemd can't find it.
+  when: not (ansible_check_mode and timesync_install is changed)

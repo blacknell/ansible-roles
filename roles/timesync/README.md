@@ -11,7 +11,10 @@ machines; use chrony for those.
 
 ## Requirements
 
-- Debian or a Debian-based distribution (including Raspberry Pi OS) with systemd
+- Debian or a Debian-based distribution (including Raspberry Pi OS) with systemd.
+  Tasks only run when `ansible_facts['os_family'] == 'Debian'`; other platforms
+  such as macOS (which syncs time with its own `timed` service) are skipped
+  rather than failed. Facts must be gathered (`gather_facts: true`, the default).
 - Bookworm or later, where `systemd-timesyncd` is a separate package
 - Not for LXC/containers: timesyncd won't start there by design, because the
   container's clock comes from the host
