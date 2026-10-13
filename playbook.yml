@@ -13,10 +13,11 @@
   gather_facts: true
   become: true
   vars:
+    # Ordered: timesyncd uses the first reachable server and only moves down
+    # the list when it fails. Each pool name resolves to several servers.
     timesync_ntp_servers:
-      - 0.uk.pool.ntp.org
-      - 1.uk.pool.ntp.org
-      - 2.uk.pool.ntp.org
-      - 3.uk.pool.ntp.org
+      - uk.pool.ntp.org
+      - europe.pool.ntp.org
+      - pool.ntp.org
   roles:
     - timesync

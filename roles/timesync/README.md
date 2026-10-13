@@ -23,8 +23,8 @@ machines; use chrony for those.
 
 | Variable                        | Required | Default                    | Description |
 |---------------------------------|----------|----------------------------|-------------|
-| `timesync_ntp_servers`          | No       | `0-3.pool.ntp.org`         | Servers for `NTP=`. Override with a regional pool, e.g. `0-3.uk.pool.ntp.org` |
-| `timesync_fallback_ntp_servers` | No       | `[]`                       | Servers for `FallbackNTP=`. Empty keeps Debian's built-in `debian.pool.ntp.org` fallback |
+| `timesync_ntp_servers`          | No       | `0-3.pool.ntp.org`         | Servers for `NTP=`, in priority order: timesyncd uses the first reachable one and only moves down the list on failure. Override with a regional pool, e.g. `0-3.uk.pool.ntp.org` |
+| `timesync_fallback_ntp_servers` | No       | `[]`                       | Servers for `FallbackNTP=`. Only used when no `NTP=` servers are configured at all, **not** when they're unreachable, so put last-resort servers at the end of `timesync_ntp_servers` instead. Empty keeps Debian's built-in `debian.pool.ntp.org` fallback |
 | `timesync_dropin_name`          | No       | `50-ansible.conf`          | Drop-in file name. The prefix orders it after vendor drop-ins such as Raspberry Pi OS's `40-rpi-sync.conf` |
 
 `vars/main.yml` holds the list of conflicting packages and legacy files that are
