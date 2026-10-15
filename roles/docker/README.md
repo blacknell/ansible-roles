@@ -13,12 +13,29 @@ hosts, from the official Docker apt repository, and enables the `docker.service`
 
 ## Role Variables
 
-| Variable         | Required | Default | Description                                                                 |
-|-------------------|----------|---------|-------------------------------------------------------------------------------|
-| `linux_user_id`   | Yes      | none    | Local user to add to the `docker` group, so it can run `docker` without `sudo` |
+| Variable | Default | Description |
+|---|---|---|
+| `docker_users` | `[]` | Users added to the `docker` group so they can run `docker` without `sudo`. Empty means just `linux_user_id` |
+| `linux_user_id` | none | Used when `docker_users` is empty; must then be set by the consuming playbook or inventory |
+| `docker_daemon_options` | `{}` | Written to `/etc/docker/daemon.json` when not empty, after `dockerd --validate` checks it. Changing it restarts Docker. Left empty, an existing `daemon.json` is not touched |
 
-`linux_user_id` has no default and must be set by the consuming playbook or inventory
-(e.g. in `group_vars`), or the role will fail on the "Add user to 'docker' group" task.
+Docker is only restarted when the engine packages or `daemon.json` change, not when the
+dependencies or the apt repository change.
+
+When users are added to the group, the role resets the connection so later tasks in the
+same play can run `docker` as them.
+
+Example `daemon.json` settings, with container log rotation and `live-restore` so
+containers keep running while the daemon restarts:
+
+```yaml
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  live-restore: true
+```
 
 ## Dependencies
 
@@ -42,7 +59,7 @@ Then reference it by its fully-qualified name:
 - hosts: docker_hosts
   become: true
   vars:
-    linux_user_id: pi
+    docker_users: [pi]
   roles:
     - blacknell.ansible_roles.docker
 ```

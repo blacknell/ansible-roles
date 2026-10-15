@@ -1,0 +1,12 @@
+---
+- name: Add users to the docker group so they can run docker without sudo
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users_to_add }}"
+
+# Group membership only applies to new logins; reconnect so later tasks in
+# the same play can use docker as these users.
+- name: Reset the connection so the new group membership applies
+  ansible.builtin.meta: reset_connection

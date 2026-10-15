@@ -1,7 +1,18 @@
 ---
 # defaults file for docker
 
-# The role adds this user to the 'docker' group so it can run docker
-# commands without sudo. This variable has no default and MUST be
-# set by the playbook or inventory that consumes this role.
-# linux_user_id: your_user
+# Users added to the 'docker' group so they can run docker without sudo.
+# Empty means just linux_user_id, which must then be set by the playbook or
+# inventory that consumes this role.
+docker_users: []
+
+# Written to /etc/docker/daemon.json when not empty, and validated with
+# dockerd --validate first. Changing it restarts docker. For example:
+#   docker_daemon_options:
+#     log-driver: json-file
+#     log-opts:
+#       max-size: "10m"
+#       max-file: "3"
+#     live-restore: true
+# Left empty, an existing daemon.json is not touched.
+docker_daemon_options: {}

@@ -8,7 +8,6 @@
     quiet: true
 
 - name: Install dependent packages
-  notify: Restart docker
   ansible.builtin.apt:
     name:
       - gnupg
@@ -20,7 +19,6 @@
     state: present
 
 - name: Add Docker apt repository (deb822)
-  notify: Restart docker
   ansible.builtin.deb822_repository:
     name: docker
     types: deb
@@ -42,11 +40,32 @@
     state: present
     update_cache: "{{ docker_repo is changed }}"
 
-- name: Add user to 'docker' group avoiding sudo
-  ansible.builtin.user:
-    name: "{{ linux_user_id }}"
-    groups: docker
-    append: true
+# --validate stops a bad option from leaving docker unable to start.
+- name: Write Docker daemon options to /etc/docker/daemon.json
+  when: docker_daemon_options | length > 0
+  notify: Restart docker
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_options | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+    validate: dockerd --validate --config-file %s
+
+- name: Read the docker group's members
+  ansible.builtin.getent:
+    database: group
+    key: docker
+
+# Only included when someone needs adding, because the connection reset
+# inside it can't be made conditional on its own.
+- name: Add users to the docker group
+  when: docker_users_to_add | length > 0
+  ansible.builtin.include_tasks: users.yml
+  vars:
+    docker_users_to_add: >-
+      {{ docker_users_effective
+         | difference(ansible_facts['getent_group']['docker'][2].split(',')) }}
 
 - name: Enable & start daemon
   ansible.builtin.systemd:

@@ -2,6 +2,17 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Changed
+
+- docker: only restart Docker when the engine packages or `daemon.json` change, not when its dependencies or apt repository change
+
+### Added
+
+- docker: `docker_daemon_options` writes `/etc/docker/daemon.json`, validated with `dockerd --validate`
+- docker: `docker_users` list for the `docker` group (defaults to `linux_user_id`), with a connection reset when users are added
+
 ## 1.8.0
 
 ### Fixed
