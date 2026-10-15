@@ -69,6 +69,13 @@ pipeline {
         stage('Lint roles') {
             environment {
                 ANSIBLE_ROLES_PATH = "${WORKSPACE}/roles"
+                // ansible-lint also searches ~/.ansible/collections, even with
+                // ANSIBLE_COLLECTIONS_PATH set. On the built-in node that's the
+                // shared /root/.ansible/collections, where a half-deleted
+                // community.general from another job's 'install --force' shadows
+                // the good copy ("couldn't resolve module/action
+                // 'community.general.homebrew'"). A per-job HOME keeps it out.
+                HOME = "${WORKSPACE}/.ci-home"
             }
             steps {
                 sh '''

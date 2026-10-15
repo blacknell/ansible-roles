@@ -2,3 +2,4 @@
 /.ansible
 /.ci-venv
 /.ci-collections
+/.ci-home
