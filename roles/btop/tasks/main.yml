@@ -15,5 +15,5 @@
   become: false
   community.general.homebrew:
     name: btop
-    state: latest
+    state: present
     update_homebrew: true

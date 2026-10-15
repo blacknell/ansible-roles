@@ -26,7 +26,7 @@
   become: false
   community.general.homebrew:
     name: fzf
-    state: latest
+    state: present
     update_homebrew: true
 
 # eval "$(fzf --bash)" / source <(fzf --zsh) ask the fzf binary itself to
