@@ -30,11 +30,6 @@
     signed_by: https://download.docker.com/linux/debian/gpg
   register: docker_repo
 
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-  when: docker_repo.changed
-
 - name: Install docker engine
   notify: Restart docker
   ansible.builtin.apt:
@@ -45,6 +40,7 @@
       - docker-buildx-plugin
       - docker-compose-plugin
     state: present
+    update_cache: "{{ docker_repo is changed }}"
 
 - name: Add user to 'docker' group avoiding sudo
   ansible.builtin.user:
