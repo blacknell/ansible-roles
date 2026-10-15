@@ -13,7 +13,7 @@
     state: present
 
 - name: configure SSH client config global rules
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - GLOBAL RULES"
@@ -24,7 +24,7 @@
       FingerprintHash md5
 
 - name: configure SSH client config hosts rules
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - HOSTS RULES"
@@ -32,7 +32,7 @@
 
 - name: configure SSH client to use the 1password agent for authentication
   when: ansible_facts['os_family'] == 'Darwin'
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - 1PASSWORD AGENT"
@@ -42,7 +42,7 @@
 
 - name: Define .zshrc 1password agent
   when: ansible_facts['os_family'] == 'Darwin'
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: ~/.zshrc
     marker: "# {mark} ANSIBLE MANAGED BLOCK - 1PASSWORD AGENT"
