@@ -8,11 +8,11 @@
 # become: true would silently target root's home instead of ansible_user's.
 - name: re-gather facts as ansible_user (not become-escalated)
   become: false
-  setup:
+  ansible.builtin.setup:
 
 - name: Install fzf package (Debian)
   when: ansible_facts['distribution'] == 'Debian'
-  apt:
+  ansible.builtin.apt:
     name:
       - fzf
     state: latest
@@ -37,7 +37,7 @@
 # recommends this approach over sourcing individual files for that reason.
 - name: Install fzf key bindings (bash)
   when: (ansible_facts['user_shell'] | basename) == 'bash'
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "{{ ansible_facts['user_dir'] }}/.bashrc"
     prepend_newline: true
     marker: "# {mark} ANSIBLE MANAGED BLOCK - FZF KEY BINDINGS"
@@ -46,7 +46,7 @@
 
 - name: Install fzf key bindings (zsh)
   when: (ansible_facts['user_shell'] | basename) == 'zsh'
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "{{ ansible_facts['user_dir'] }}/.zshrc"
     prepend_newline: true
     marker: "# {mark} ANSIBLE MANAGED BLOCK - FZF KEY BINDINGS"

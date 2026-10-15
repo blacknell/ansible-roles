@@ -2,17 +2,17 @@
 # tasks file for logrotate
 
 - name: install logrotate
-  apt:
+  ansible.builtin.apt:
     name:
       - logrotate
     state: latest
 
 - name: compute effective logrotate_services (defaults + logrotate_services_override)
-  set_fact:
+  ansible.builtin.set_fact:
     logrotate_services_effective: "{{ logrotate_services | combine(logrotate_services_override) }}"
 
 - name: logrotate.d config files
-  template:
+  ansible.builtin.template:
     src: "{{ item.key }}.j2"
     dest: "/etc/logrotate.d/{{ item.key }}"
     owner: root
@@ -23,7 +23,7 @@
   when: item.value
 
 - name: remove logrotate.d config files for disabled services
-  file:
+  ansible.builtin.file:
     path: "/etc/logrotate.d/{{ item.key }}"
     state: absent
   loop: "{{ logrotate_services_effective | dict2items }}"

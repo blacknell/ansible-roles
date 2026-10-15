@@ -9,7 +9,7 @@
 
 - name: Install dependent packages
   notify: Restart docker
-  apt:
+  ansible.builtin.apt:
     name:
       - gnupg
       - python3-apt
@@ -31,13 +31,13 @@
   register: docker_repo
 
 - name: Update apt cache
-  apt:
+  ansible.builtin.apt:
     update_cache: true
   when: docker_repo.changed
 
 - name: Install docker engine
   notify: Restart docker
-  apt:
+  ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
@@ -53,7 +53,7 @@
     append: true
 
 - name: Enable & start daemon
-  systemd:
+  ansible.builtin.systemd:
     name: docker.service
     daemon_reload: true
     enabled: true

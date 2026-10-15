@@ -1,11 +1,11 @@
 ---
 - name: set time zone
   notify: Restart crond
-  timezone:
+  community.general.timezone:
     name: "{{ std_packages_timezone }}"
 
 - name: profile.d config files
-  copy:
+  ansible.builtin.copy:
     src: profile.d/
     dest: /etc/profile.d/
     owner: root
@@ -14,7 +14,7 @@
 
 - name: apt preference files
   when: std_packages_define_apt_preferences
-  copy:
+  ansible.builtin.copy:
     src: apt/preferences.d/
     dest: /etc/apt/preferences.d/
     owner: root
@@ -22,13 +22,13 @@
     mode: '0640'
 
 - name: install git
-  apt:
+  ansible.builtin.apt:
     name:
       - git
     state: latest
 
 - name: unattended upgrades
-  apt:
+  ansible.builtin.apt:
     name:
       - unattended-upgrades
       - apt-listchanges
@@ -36,19 +36,19 @@
 
 - name: install iperf3
   when: std_packages_install_iperf3
-  apt:
+  ansible.builtin.apt:
     name:
       - iperf3
     state: latest
 
 - name: install rsync
-  apt:
+  ansible.builtin.apt:
     name:
       - rsync
     state: latest
 
 - name: install crond
-  apt:
+  ansible.builtin.apt:
     name:
       - cron
     state: latest
@@ -56,7 +56,7 @@
 - name: set crond to log only failed processes
   when: not std_packages_crond_log_processes
   notify: Restart crond
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/cron
     state: present
     line: 'EXTRA_OPTS="-L 4"'
@@ -64,7 +64,7 @@
 - name: set crond to also log failed processes
   when: std_packages_crond_log_processes
   notify: Restart crond
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/cron
     state: present
     line: 'EXTRA_OPTS="-L 5"'

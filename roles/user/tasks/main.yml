@@ -19,7 +19,7 @@
 # become: true would silently write to root's home instead of ansible_user's.
 - name: re-gather facts as ansible_user (not become-escalated)
   become: false
-  setup:
+  ansible.builtin.setup:
 
 - name: Define ls aliases
   when: (ansible_facts['user_shell'] | basename) in ['bash', 'zsh']
@@ -27,7 +27,7 @@
     ls_aliases_dest:
       bash: .bash_aliases
       zsh: .zprofile
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/{{ ls_aliases_dest[ansible_facts['user_shell'] | basename] }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - LS ALIASES"
@@ -42,7 +42,7 @@
     ls_aliases_dest:
       bash: .bash_aliases
       zsh: .zprofile
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/{{ ls_aliases_dest[ansible_facts['user_shell'] | basename] }}"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - MISC ALIASES"
@@ -53,7 +53,7 @@
 
 - name: Define .bashrc history settings
   when: (ansible_facts['user_shell'] | basename) == 'bash'
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.bashrc"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - BASHRC HISTORY"
@@ -69,7 +69,7 @@
 
 - name: Define .zshrc history settings
   when: (ansible_facts['user_shell'] | basename) == 'zsh'
-  blockinfile:
+  ansible.builtin.blockinfile:
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - ZSHRC HISTORY"
