@@ -1,2 +1,4 @@
 ---
 # vars file for docker
+
+docker_users_effective: "{{ docker_users if docker_users | length > 0 else [linux_user_id] }}"
