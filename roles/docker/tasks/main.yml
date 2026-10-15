@@ -1,26 +1,42 @@
 ---
 # tasks file for docker
 
-- name: Only aarch64 supported
+- name: Check the architecture is supported (aarch64 or x86_64)
   ansible.builtin.assert:
-    that: "ansible_facts['architecture'] == 'aarch64' or ansible_facts['architecture'] == 'x86_64'"
-    fail_msg: "architecture is not supported by this role"
+    that: "ansible_facts['architecture'] in ['aarch64', 'x86_64']"
+    fail_msg: "architecture {{ ansible_facts['architecture'] }} is not supported by this role"
     quiet: true
 
 - name: Install dependent packages
-  notify: Restart docker
   ansible.builtin.apt:
     name:
-      - gnupg
+      - ca-certificates
       - python3-apt
       - python3-debian
-      - ca-certificates
-      - python3-cffi
-      - python3-cryptography
     state: present
 
+# Distro packages that conflict with docker-ce, per Docker's install docs.
+# Removing them doesn't delete /var/lib/docker.
+- name: Remove conflicting Docker packages
+  ansible.builtin.apt:
+    name: "{{ docker_obsolete_packages }}"
+    state: absent
+
+# Repo files from older install methods. Next to the deb822 source below they
+# make apt fail with "conflicting values set for option Signed-By".
+# /etc/apt/keyrings/docker.asc is left alone: deb822_repository keeps its key there.
+- name: Remove old-style Docker apt repo files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list.d/docker.list
+    - /etc/apt/sources.list.d/download_docker_com_linux_debian.list
+    - /etc/apt/trusted.gpg.d/docker.asc
+    - /etc/apt/trusted.gpg.d/docker.gpg
+  register: docker_old_repo_files
+
 - name: Add Docker apt repository (deb822)
-  notify: Restart docker
   ansible.builtin.deb822_repository:
     name: docker
     types: deb
@@ -30,6 +46,8 @@
     signed_by: https://download.docker.com/linux/debian/gpg
   register: docker_repo
 
+# In check mode on a fresh host the repo isn't really added, so the packages
+# can't be found; ignore that rather than fail the dry run.
 - name: Install docker engine
   notify: Restart docker
   ansible.builtin.apt:
@@ -39,14 +57,37 @@
       - containerd.io
       - docker-buildx-plugin
       - docker-compose-plugin
-    state: present
-    update_cache: "{{ docker_repo is changed }}"
+    state: "{{ docker_packages_state }}"
+    update_cache: "{{ docker_repo is changed or docker_old_repo_files is changed }}"
+  ignore_errors: "{{ ansible_check_mode }}"
 
-- name: Add user to 'docker' group avoiding sudo
-  ansible.builtin.user:
-    name: "{{ linux_user_id }}"
-    groups: docker
-    append: true
+# --validate stops a bad option from leaving docker unable to start.
+- name: Write Docker daemon options to /etc/docker/daemon.json
+  when: docker_daemon_options | length > 0
+  notify: Restart docker
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_options | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+    validate: dockerd --validate --config-file %s
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Read the docker group's members
+  ansible.builtin.getent:
+    database: group
+    key: docker
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# Only included when someone needs adding, because the connection reset
+# inside it can't be made conditional on its own.
+- name: Add users to the docker group
+  when: docker_users_to_add | length > 0
+  ansible.builtin.include_tasks: users.yml
+  vars:
+    docker_group_members: "{{ ansible_facts.get('getent_group', {}).get('docker', ['', '', ''])[2] }}"
+    docker_users_to_add: "{{ docker_users_effective | difference(docker_group_members.split(',')) }}"
 
 - name: Enable & start daemon
   ansible.builtin.systemd:
@@ -54,3 +95,4 @@
     daemon_reload: true
     enabled: true
     state: started
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -46,6 +46,17 @@ pipeline {
             }
         }
 
+        // The version in galaxy.yml is the release number; its notes come from
+        // the matching "## <version>" section of CHANGELOG.md, so make sure it's there.
+        stage('Check changelog') {
+            steps {
+                sh """
+                    v=\$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
+                    grep -qx "## \$v" CHANGELOG.md || { echo "CHANGELOG.md has no '## \$v' section"; exit 1; }
+                """
+            }
+        }
+
         stage('Syntax check roles') {
             environment {
                 // ansible-playbook resolves "roles:" relative to the playbook's
@@ -136,6 +147,46 @@ EOF
                             badge.setStatus("${errors + warnings}")
                             badge.setColor(errors > 0 ? 'red' : (warnings > 0 ? 'yellow' : 'brightgreen'))
                         }
+                    }
+                }
+            }
+        }
+
+        // On main only: if galaxy.yml's version has no tag yet, create the GitHub
+        // release (which also creates the tag) with that version's CHANGELOG.md
+        // section as its notes, then tell Slack. Merges that don't bump the
+        // version do nothing.
+        stage('Release') {
+            when { allOf { branch 'main'; not { changeRequest() } } }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'jenkins-pat-key',
+                                                  usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+                    sh '''
+                        set -eu
+                        rm -f release.version release-notes.md release.json
+                        v=$(python3 -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
+                        if git ls-remote --exit-code --tags https://github.com/blacknell/ansible-roles.git "refs/tags/$v" >/dev/null; then
+                            echo "$v is already released"
+                            exit 0
+                        fi
+                        awk -v h="## $v" '$0 == h { f = 1; next } /^## / { f = 0 } f' CHANGELOG.md > release-notes.md
+                        python3 - "$v" "$GIT_COMMIT" > release.json <<'EOF'
+import json, sys
+v, sha = sys.argv[1:3]
+print(json.dumps({"tag_name": v, "target_commitish": sha, "name": v,
+                  "body": open("release-notes.md").read().strip()}))
+EOF
+                        curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/blacknell/ansible-roles/releases --data @release.json > /dev/null
+                        echo "$v" > release.version
+                    '''
+                }
+                script {
+                    if (fileExists('release.version')) {
+                        def v = readFile('release.version').trim()
+                        def notes = readFile('release-notes.md').trim()
+                        slackSend color: 'good',
+                                  channel: '#nomad-website',
+                                  message: "blacknell.ansible_roles *${v}* released: https://github.com/blacknell/ansible-roles/releases/tag/${v}\n${notes}"
                     }
                 }
             }

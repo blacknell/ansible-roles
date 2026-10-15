@@ -3,3 +3,6 @@
 /.ci-venv
 /.ci-collections
 /.ci-home
+/release.version
+/release-notes.md
+/release.json
