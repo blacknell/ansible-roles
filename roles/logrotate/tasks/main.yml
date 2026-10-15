@@ -5,7 +5,7 @@
   ansible.builtin.apt:
     name:
       - logrotate
-    state: latest
+    state: present
 
 - name: compute effective logrotate_services (defaults + logrotate_services_override)
   ansible.builtin.set_fact:

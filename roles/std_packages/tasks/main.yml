@@ -25,33 +25,33 @@
   ansible.builtin.apt:
     name:
       - git
-    state: latest
+    state: present
 
 - name: unattended upgrades
   ansible.builtin.apt:
     name:
       - unattended-upgrades
       - apt-listchanges
-    state: latest
+    state: present
 
 - name: install iperf3
   when: std_packages_install_iperf3
   ansible.builtin.apt:
     name:
       - iperf3
-    state: latest
+    state: present
 
 - name: install rsync
   ansible.builtin.apt:
     name:
       - rsync
-    state: latest
+    state: present
 
 - name: install crond
   ansible.builtin.apt:
     name:
       - cron
-    state: latest
+    state: present
 
 - name: set crond to log only failed processes
   when: not std_packages_crond_log_processes
