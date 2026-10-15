@@ -4,6 +4,13 @@ pipeline {
     environment {
         // Tools installed by 'Install tooling' come first on PATH.
         PATH = "${WORKSPACE}/.ci-venv/bin:${env.PATH}"
+        // Collections go in this job's own workspace, not the shared
+        // /root/.ansible/collections. Every build on the built-in node shares
+        // HOME=/root, so two builds running 'install --force' at once (e.g. the
+        // PR build and the branch build triggered by the same push) would
+        // delete/rewrite each other's collection dirs mid-install, and a
+        // half-deleted collection there shadows the copy bundled with ansible.
+        ANSIBLE_COLLECTIONS_PATH = "${WORKSPACE}/.ci-collections"
     }
 
     stages {
@@ -30,6 +37,12 @@ pipeline {
         stage('Validate Ansible') {
             steps {
                 sh 'ansible --version'
+            }
+        }
+
+        stage('Install collections') {
+            steps {
+                sh 'ansible-galaxy collection install -r requirements.yml --force -p "${ANSIBLE_COLLECTIONS_PATH}"'
             }
         }
 
@@ -60,12 +73,15 @@ pipeline {
             steps {
                 sh '''
                     ansible-lint --version
-                    ansible-galaxy collection install -r requirements.yml --force
                     # No --strict: warn_list rules are reported but don't fail
                     # the build; real violations exit non-zero and do.
                     # --sarif-file also writes machine-readable results for
                     # Warnings NG, alongside the normal console output.
-                    ansible-lint --sarif-file ansible-lint.sarif roles/
+                    # --offline stops ansible-lint running its own
+                    # "ansible-galaxy collection install" into the shared
+                    # /root/.ansible/collections; the collections it needs are
+                    # already in this workspace from 'Install collections'.
+                    ansible-lint --offline --sarif-file ansible-lint.sarif roles/
                 '''
             }
             post {
