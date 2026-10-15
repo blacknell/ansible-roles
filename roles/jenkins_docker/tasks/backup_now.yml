@@ -1,0 +1,86 @@
+---
+# Installs nothing: checks the install, runs the script as
+# jenkins_docker_user and verifies the tarballs it made.
+- name: Run and verify a backup as {{ jenkins_docker_user }}
+  become: "{{ __jenkins_docker_become }}"
+  become_user: "{{ jenkins_docker_user }}"
+  block:
+    - name: Check the backup script and log file
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ jenkins_docker_backup_script }}"
+        - "{{ jenkins_docker_backup_log }}"
+      register: __jenkins_docker_prereqs
+
+    - name: Verify the script is executable and the log is writable
+      ansible.builtin.assert:
+        that:
+          - __jenkins_docker_prereqs.results[0].stat.exists
+          - __jenkins_docker_prereqs.results[0].stat.executable
+          - __jenkins_docker_prereqs.results[1].stat.exists
+          - __jenkins_docker_prereqs.results[1].stat.writeable
+        fail_msg: >-
+          {{ jenkins_docker_backup_script }} must exist and be executable, and
+          {{ jenkins_docker_backup_log }} must exist and be writable by
+          {{ jenkins_docker_user }}. Run backup_install first.
+        quiet: true
+
+    - name: Report what a real run would do (check mode only)
+      ansible.builtin.debug:
+        msg: >-
+          Check mode: would run {{ jenkins_docker_backup_script }} and verify
+          the tarballs in {{ jenkins_docker_backup_dir }}
+      when: ansible_check_mode
+
+    - name: Run the backup (output also appended to {{ jenkins_docker_backup_log }})
+      ansible.builtin.shell: >-
+        set -o pipefail;
+        {{ jenkins_docker_backup_script | quote }} 2>&1
+        | tee -a {{ jenkins_docker_backup_log | quote }}
+      args:
+        executable: /bin/bash
+      register: __jenkins_docker_result
+      changed_when: true
+      when: not ansible_check_mode
+
+    - name: Show the backup output
+      ansible.builtin.debug:
+        var: __jenkins_docker_result.stdout_lines
+      when: not ansible_check_mode
+
+    - name: Read the backup stamp from the output
+      ansible.builtin.set_fact:
+        __jenkins_docker_stamp: >-
+          {{ __jenkins_docker_result.stdout | regex_findall('backup OK stamp=([^ ]+)') | last | default('') }}
+      when: not ansible_check_mode
+
+    - name: Verify the output came from this role's backup script
+      ansible.builtin.assert:
+        that: __jenkins_docker_stamp | length > 0
+        fail_msg: >-
+          {{ jenkins_docker_backup_script }} ran but didn't print
+          "backup OK stamp=...", so it isn't the script this role installs.
+          Run backup_install to install it.
+        quiet: true
+      when: not ansible_check_mode
+
+    - name: Check the tarballs this run made
+      ansible.builtin.stat:
+        path: "{{ jenkins_docker_backup_dir }}/jenkins-{{ item }}-{{ __jenkins_docker_stamp }}.tar.gz"
+      loop: "{{ ['home'] + (['config'] if jenkins_docker_backup_config | bool else []) }}"
+      register: __jenkins_docker_files
+      when: not ansible_check_mode
+
+    - name: Verify the tarballs exist, are private and the home one is a sensible size
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.mode == '0600'
+          - item.item != 'home' or item.stat.size >= (jenkins_docker_backup_min_home_bytes | int)
+        fail_msg: "Problem with the {{ item.item }} tarball (missing, not 0600, or too small)"
+        success_msg: "{{ item.stat.path | basename }}: {{ item.stat.size | human_readable }}"
+      loop: "{{ __jenkins_docker_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: not ansible_check_mode

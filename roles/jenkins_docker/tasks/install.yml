@@ -1,0 +1,67 @@
+---
+- name: Create the compose folder
+  ansible.builtin.file:
+    path: "{{ jenkins_docker_compose_dir }}"
+    state: directory
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0755"
+  become: true
+
+- name: Create the CasC folder
+  ansible.builtin.file:
+    path: "{{ jenkins_docker_compose_dir }}/casc"
+    state: directory
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0755"
+  become: true
+  when: jenkins_docker_casc | bool
+
+- name: Copy the CasC files
+  ansible.builtin.copy:
+    src: "{{ jenkins_docker_casc_src | regex_replace('/*$', '/') }}"
+    dest: "{{ jenkins_docker_compose_dir }}/casc/"
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+  become: true
+  when:
+    - jenkins_docker_casc | bool
+    - jenkins_docker_casc_src | length > 0
+  register: __jenkins_docker_casc_files
+
+- name: Write the compose file, Dockerfile and plugin list
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ jenkins_docker_compose_dir }}/{{ item.dest }}"
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0644"
+  loop:
+    - { src: docker-compose.yml.j2, dest: docker-compose.yml }
+    - { src: Dockerfile.j2, dest: Dockerfile }
+    - { src: plugins.txt.j2, dest: plugins.txt }
+    - { src: dockerignore.j2, dest: .dockerignore }
+  loop_control:
+    label: "{{ item.dest }}"
+  become: true
+  register: __jenkins_docker_build_files
+
+# Rebuilds the image only when one of the files above changed; compose then
+# recreates the container if the image or its settings differ.
+- name: Build and start Jenkins
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_docker_compose_dir }}"
+    build: "{{ 'always' if __jenkins_docker_build_files is changed else 'policy' }}"
+    state: present
+  become: true
+  register: __jenkins_docker_up
+
+# Jenkins only reads CasC at start, so restart it if those files changed and
+# the step above didn't already recreate the container.
+- name: Restart Jenkins to apply CasC changes
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_docker_compose_dir }}"
+    state: restarted
+  become: true
+  when:
+    - __jenkins_docker_casc_files is changed
+    - __jenkins_docker_up is not changed

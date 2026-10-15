@@ -1,5 +1,5 @@
 ---
-- name: Install git, pip & venv
+- name: Install git, pip & venv along with extra packages
   ansible.builtin.apt:
     name: "{{ python_debian_packages }}"
-    state: latest # noqa: package-latest
+    state: present

@@ -1,0 +1,10 @@
+---
+- name: Test jenkins_docker role
+  hosts: localhost
+  vars:
+    jenkins_docker_user: jenkins
+    jenkins_docker_compose_dir: /srv/jenkins
+    jenkins_docker_volume: jenkins_jenkins-data
+    jenkins_docker_backup_dir: /srv/jenkins-backups
+  roles:
+    - jenkins_docker

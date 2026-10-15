@@ -1,15 +1,48 @@
 pipeline {
     agent any
 
+    environment {
+        // Tools installed by 'Install tooling' come first on PATH.
+        PATH = "${WORKSPACE}/.ci-venv/bin:${env.PATH}"
+        // Collections go in this job's own workspace, not the shared
+        // /root/.ansible/collections. Every build on the built-in node shares
+        // HOME=/root, so two builds running 'install --force' at once (e.g. the
+        // PR build and the branch build triggered by the same push) would
+        // delete/rewrite each other's collection dirs mid-install, and a
+        // half-deleted collection there shadows the copy bundled with ansible.
+        ANSIBLE_COLLECTIONS_PATH = "${WORKSPACE}/.ci-collections"
+    }
+
     stages {
 
         stage('Checkout') {
             steps { checkout scm }
         }
 
+        stage('Install tooling') {
+            steps {
+                // Latest ansible (full package, incl. community collections, as the
+                // old apt package had) and ansible-lint from pip, rather than the
+                // agent's apt packages, so CI tracks current releases. Reused across builds,
+                // upgraded each run. PATH above puts it ahead of system ansible.
+                sh '''
+                    python3 -m venv .ci-venv
+                    .ci-venv/bin/pip install --quiet --upgrade pip ansible ansible-lint
+                    ansible --version
+                    ansible-lint --version
+                '''
+            }
+        }
+
         stage('Validate Ansible') {
             steps {
                 sh 'ansible --version'
+            }
+        }
+
+        stage('Install collections') {
+            steps {
+                sh 'ansible-galaxy collection install -r requirements.yml --force -p "${ANSIBLE_COLLECTIONS_PATH}"'
             }
         }
 
@@ -36,16 +69,26 @@ pipeline {
         stage('Lint roles') {
             environment {
                 ANSIBLE_ROLES_PATH = "${WORKSPACE}/roles"
+                // ansible-lint also searches ~/.ansible/collections, even with
+                // ANSIBLE_COLLECTIONS_PATH set. On the built-in node that's the
+                // shared /root/.ansible/collections, where a half-deleted
+                // community.general from another job's 'install --force' shadows
+                // the good copy ("couldn't resolve module/action
+                // 'community.general.homebrew'"). A per-job HOME keeps it out.
+                HOME = "${WORKSPACE}/.ci-home"
             }
             steps {
                 sh '''
                     ansible-lint --version
-                    ansible-galaxy collection install -r requirements.yml
                     # No --strict: warn_list rules are reported but don't fail
                     # the build; real violations exit non-zero and do.
                     # --sarif-file also writes machine-readable results for
                     # Warnings NG, alongside the normal console output.
-                    ansible-lint --sarif-file ansible-lint.sarif roles/
+                    # --offline stops ansible-lint running its own
+                    # "ansible-galaxy collection install" into the shared
+                    # /root/.ansible/collections; the collections it needs are
+                    # already in this workspace from 'Install collections'.
+                    ansible-lint --offline --sarif-file ansible-lint.sarif roles/
                 '''
             }
             post {

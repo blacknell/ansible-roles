@@ -1,8 +1,9 @@
 ---
-profile: basic
+profile: production
 
 skip_list:
   - name[casing]
 
 exclude_paths:
   - .ansible/
+  - .ci-venv/

@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+{% set env = ({'CASC_JENKINS_CONFIG': '/var/jenkins_home/casc_configs'} if jenkins_docker_casc | bool else {}) | combine(jenkins_docker_environment) %}
+name: {{ jenkins_docker_compose_project | to_json }}
+
+services:
+  jenkins:
+    build: .
+    container_name: {{ jenkins_docker_container_name | to_json }}
+{% if jenkins_docker_container_user | length > 0 %}
+    user: {{ jenkins_docker_container_user | string | to_json }}
+{% endif %}
+{% if jenkins_docker_ports | length > 0 %}
+    ports:
+{% for port in jenkins_docker_ports %}
+      - {{ port | string | to_json }}
+{% endfor %}
+{% endif %}
+{% if env | length > 0 %}
+    environment:
+{% for key, value in env.items() %}
+      {{ key }}: {{ value | string | to_json }}
+{% endfor %}
+{% endif %}
+    volumes:
+      - jenkins-data:/var/jenkins_home
+{% if jenkins_docker_casc | bool %}
+      - ./casc:/var/jenkins_home/casc_configs
+{% endif %}
+{% if jenkins_docker_docker_socket | bool %}
+      - /var/run/docker.sock:/var/run/docker.sock
+{% endif %}
+    restart: {{ jenkins_docker_restart_policy | to_json }}
+
+volumes:
+  jenkins-data:
+    name: {{ jenkins_docker_volume | to_json }}

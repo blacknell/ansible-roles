@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# The image only needs these; everything else (backups, casc, .git) stays out
+# of the build context so builds don't upload hundreds of MB of tarballs.
+*
+!Dockerfile
+!plugins.txt

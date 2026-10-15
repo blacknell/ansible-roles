@@ -82,12 +82,14 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [fzf](roles/fzf) | Installs fzf and its bash key bindings |
 | [update_debian](roles/update_debian) | Updates, dist-upgrades, and cleans up apt packages |
 | [std_packages](roles/std_packages) | Baseline host setup: timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, crond log verbosity |
-| [ntp](roles/ntp) | Installs ntp with a UK pool.ntp.org config |
+| [timesync](roles/timesync) | Configures systemd-timesyncd via a drop-in and removes conflicting time daemons (ntp/ntpsec/chrony) |
+| [ntp](roles/ntp) | **Deprecated**, use [timesync](roles/timesync). Installs ntp with a UK pool.ntp.org config |
 | [logrotate](roles/logrotate) | Installs logrotate with configs for a fixed set of services |
 | [user](roles/user) | Per-user dotfiles (bash/zsh aliases, bash history settings) across macOS and Debian |
 | [syncthing](roles/syncthing) | Installs and updates Syncthing via Homebrew on macOS |
 | [python](roles/python) | Debian: distro python3 with git, pip and venv. macOS: Homebrew Python as the single default, kept patched |
 | [btop](roles/btop) | Installs btop (apt on Debian, Homebrew on macOS) |
+| [jenkins_docker](roles/jenkins_docker) | Installs a Jenkins controller under Docker Compose, with scheduled and on-demand backups |
 
 ## License
 

@@ -1,6 +1,7 @@
+---
 galaxy_info:
   author: Paul Blacknell
-  description: Installs ntp and deploys a pool.ntp.org-based ntp.conf
+  description: Configures systemd-timesyncd via a drop-in and removes conflicting time daemons
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 
@@ -16,6 +17,7 @@ galaxy_info:
   galaxy_tags:
     - debian
     - ntp
+    - timesyncd
     - time
 
 dependencies: []

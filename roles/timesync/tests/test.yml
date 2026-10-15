@@ -1,6 +1,6 @@
 ---
-- name: Test ntp role
+- name: Test timesync role
   hosts: localhost
   remote_user: root
   roles:
-    - ntp
+    - timesync

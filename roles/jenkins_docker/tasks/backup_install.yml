@@ -1,0 +1,43 @@
+---
+- name: Check the filename timestamp format
+  ansible.builtin.assert:
+    that: jenkins_docker_backup_stamp_format is match('^[^ /]+$')
+    fail_msg: jenkins_docker_backup_stamp_format must not contain spaces or slashes.
+    quiet: true
+
+- name: Create the backup folder
+  ansible.builtin.file:
+    path: "{{ jenkins_docker_backup_dir }}"
+    state: directory
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0700"
+  become: true
+
+- name: Create the log file, writable by {{ jenkins_docker_user }}
+  ansible.builtin.file:
+    path: "{{ jenkins_docker_backup_log }}"
+    state: touch
+    owner: "{{ jenkins_docker_user }}"
+    mode: "0640"
+    access_time: preserve
+    modification_time: preserve
+  become: true
+
+- name: Install the backup script
+  ansible.builtin.template:
+    src: jenkins-docker-backup.sh.j2
+    dest: "{{ jenkins_docker_backup_script }}"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Schedule the nightly backup
+  ansible.builtin.cron:
+    name: "{{ jenkins_docker_backup_cron_name }}"
+    minute: "{{ jenkins_docker_backup_cron_minute }}"
+    hour: "{{ jenkins_docker_backup_cron_hour }}"
+    job: "{{ jenkins_docker_backup_script | quote }} >> {{ jenkins_docker_backup_log | quote }} 2>&1"
+    state: "{{ 'present' if jenkins_docker_backup_cron | bool else 'absent' }}"
+  become: "{{ __jenkins_docker_become }}"
+  become_user: "{{ jenkins_docker_user }}"

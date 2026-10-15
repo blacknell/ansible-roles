@@ -1,10 +1,10 @@
 ---
 - name: Install btop (Debian)
   when: ansible_facts['distribution'] == 'Debian'
-  apt:
+  ansible.builtin.apt:
     name:
       - btop
-    state: latest
+    state: present
 
 # Homebrew refuses to run as root, so this must run as the connecting user
 # even under a play that sets become: true for everything else.
@@ -15,5 +15,5 @@
   become: false
   community.general.homebrew:
     name: btop
-    state: latest
+    state: present
     update_homebrew: true

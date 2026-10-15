@@ -7,17 +7,17 @@
 # Usage:
 #   ansible-playbook -i inventory playbook.yml --check --diff
 #
-# The user role is the only one applied here since it's the one built to
-# work across both macOS (macs group) and Debian (virtual_machines group).
-# No become: connecting as ansible_user (paul) writing to their own home
-# directory doesn't need privilege escalation.
 
-- name: Apply user dotfiles across macOS and Debian hosts, ssh client settings and fuzzy find
-  hosts: all
+- name: Configure time sync on Debian hosts
+  hosts: virtual_machines:docker
   gather_facts: true
-  become: false
+  become: true
+  vars:
+    # Ordered: timesyncd uses the first reachable server and only moves down
+    # the list when it fails. Each pool name resolves to several servers.
+    timesync_ntp_servers:
+      - uk.pool.ntp.org
+      - europe.pool.ntp.org
+      - pool.ntp.org
   roles:
-    - user
-    - ssh_client
-    - fzf
-    - btop
+    - timesync
