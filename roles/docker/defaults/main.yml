@@ -16,3 +16,18 @@ docker_users: []
 #     live-restore: true
 # Left empty, an existing daemon.json is not touched.
 docker_daemon_options: {}
+
+# State for the Docker engine packages. "present" installs them and leaves
+# upgrades to the update_debian role (unattended-upgrades only covers Debian's
+# own repos); "latest" upgrades them on every run and restarts docker.
+docker_packages_state: present
+
+# Distro packages that conflict with Docker's own, removed before install.
+docker_obsolete_packages:
+  - docker.io
+  - docker-doc
+  - docker-compose
+  - docker-compose-v2
+  - podman-docker
+  - containerd
+  - runc
