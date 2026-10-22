@@ -1,0 +1,7 @@
+---
+# If any of these packages are installed, the role skips the host because
+# something else manages swap there.
+#   dphys-swapfile: Raspberry Pi OS's swap manager (/var/swap, sized in
+#   /etc/dphys-swapfile). A second swap file would fight it.
+swap_skip_if_installed:
+  - dphys-swapfile

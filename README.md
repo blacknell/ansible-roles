@@ -92,6 +92,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [jenkins_docker](roles/jenkins_docker) | Installs a Jenkins controller under Docker Compose, with scheduled and on-demand backups and restore |
 | [apache_app](roles/apache_app) | A PHP/Apache application in Docker Compose serving one or more vhosts, with an optional private MySQL database, imports and backups |
 | [nginx_proxy](roles/nginx_proxy) | nginx reverse proxy on the host, with vhosts that switch to HTTPS once their Let's Encrypt certificate exists (pairs with geerlingguy.certbot) |
+| [swap](roles/swap) | Adds a swap file and sets vm.swappiness on hosts that set a size (off by default; skips Raspberry Pi OS's dphys-swapfile) |
 
 ## License
 

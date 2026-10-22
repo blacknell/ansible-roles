@@ -1,0 +1,33 @@
+---
+# Only acts on Debian hosts that set swap_file_size_mb above 0. Everything
+# else is skipped rather than failed, so the role can run against every host
+# in a baseline playbook.
+#
+# Hosts with a package from swap_skip_if_installed (dphys-swapfile on
+# Raspberry Pi OS) are skipped with a message.
+
+- name: Configure the swap file
+  when:
+    - swap_file_size_mb | int > 0
+    - ansible_facts['os_family'] == 'Debian'
+  block:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+
+    - name: Find packages that manage swap themselves
+      ansible.builtin.set_fact:
+        swap_blockers: >-
+          {{ swap_skip_if_installed
+             | select('in', ansible_facts['packages'] | default({}))
+             | list }}
+
+    - name: Report hosts skipped because another package manages swap
+      ansible.builtin.debug:
+        msg: >-
+          Skipping swap on {{ inventory_hostname }}:
+          {{ swap_blockers | join(', ') }} manages swap here.
+      when: swap_blockers | length > 0
+
+    - name: Add the swap file on Debian
+      ansible.builtin.include_tasks: debian.yml
+      when: swap_blockers | length == 0
