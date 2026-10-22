@@ -1,0 +1,21 @@
+---
+argument_specs:
+  main:
+    short_description: Add a swap file and set vm.swappiness
+    options:
+      swap_file_size_mb:
+        type: int
+        default: 0
+        description: Size of the swap file in MB. 0 leaves swap alone.
+      swap_file_path:
+        type: path
+        default: /swapfile
+        description: Where the swap file goes (ext4 or xfs).
+      swap_swappiness:
+        type: int
+        default: 10
+        description: vm.swappiness, 0-100.
+      swap_sysctl_file:
+        type: path
+        default: /etc/sysctl.d/90-swap.conf
+        description: sysctl.d file for the swappiness setting.

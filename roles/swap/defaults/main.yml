@@ -1,0 +1,16 @@
+---
+# Size of the swap file in MB. 0 (the default) leaves swap alone, so the role
+# can sit in a baseline playbook for every host and only hosts that set this
+# (e.g. in host_vars) get a swap file.
+swap_file_size_mb: 0
+
+# Where the swap file goes. Must be on a filesystem that supports swap files
+# made with fallocate (ext4 and xfs; not btrfs or zfs).
+swap_file_path: /swapfile
+
+# vm.swappiness while the role manages swap. Low means swap is only used when
+# memory is really short, rather than to make room for the page cache.
+swap_swappiness: 10
+
+# sysctl.d file the swappiness setting is written to.
+swap_sysctl_file: /etc/sysctl.d/90-swap.conf
