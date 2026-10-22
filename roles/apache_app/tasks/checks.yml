@@ -1,0 +1,55 @@
+---
+- name: Apply vhost defaults
+  ansible.builtin.set_fact:
+    __apache_app_vhosts: >-
+      {%- set ns = namespace(out=[]) -%}
+      {%- for v in apache_app_vhosts -%}
+      {%-   set ns.out = ns.out + [__apache_app_vhost_defaults | combine({'docroot': v.server_name}, v)] -%}
+      {%- endfor -%}
+      {{ ns.out }}
+  tags: [always]
+
+- name: Check the vhosts
+  ansible.builtin.assert:
+    that:
+      - __apache_app_vhosts | length > 0
+      - (__apache_app_vhosts | map(attribute='server_name') | unique | length) == (__apache_app_vhosts | length)
+      - __apache_app_vhosts | map(attribute='docroot') | reject('match', '^[A-Za-z0-9][A-Za-z0-9._-]*$') | list | length == 0
+      - apache_app_name is match('^[a-z0-9][a-z0-9_-]*$')
+      - apache_app_port | int >= 1 and apache_app_port | int <= 65535
+    fail_msg: >-
+      Need at least one vhost, unique server names, docroots of letters, digits,
+      dots, dashes or underscores, a lower-case apache_app_name and a valid port.
+    quiet: true
+  tags: [always]
+
+# Env files are single-quoted for compose, so a value can't contain ' or a newline
+- name: Check the environment values can be written safely
+  ansible.builtin.assert:
+    that: >-
+      (__values | select('search', "['\n]") | list | length) == 0
+    fail_msg: "Environment values and database passwords can't contain a single quote or a newline."
+    quiet: true
+  vars:
+    __values: >-
+      {{ (apache_app_env.values() | map('string') | list)
+         + ([apache_app_db_password | default(''), apache_app_db_root_password | default('')]
+            if apache_app_db | bool else []) }}
+  no_log: true
+  tags: [always]
+
+- name: Check the database settings
+  ansible.builtin.assert:
+    that:
+      - apache_app_db_password | default('') | length > 0
+      - apache_app_db_root_password | default('') | length > 0
+      - apache_app_db_name is match('^[A-Za-z0-9_]+$')
+      - apache_app_db_user is match('^[A-Za-z0-9_]+$')
+      - apache_app_db_extra_users | map(attribute='name') | reject('match', '^[A-Za-z0-9_]+$') | list | length == 0
+    fail_msg: >-
+      apache_app_db needs apache_app_db_password and apache_app_db_root_password,
+      and database, user and extra user names of letters, digits or underscores.
+    quiet: true
+  when: apache_app_db | bool
+  no_log: true
+  tags: [always]

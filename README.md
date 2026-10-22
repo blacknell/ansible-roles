@@ -90,6 +90,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [python](roles/python) | Debian: distro python3 with git, pip and venv. macOS: Homebrew Python as the single default, kept patched |
 | [btop](roles/btop) | Installs btop (apt on Debian, Homebrew on macOS) |
 | [jenkins_docker](roles/jenkins_docker) | Installs a Jenkins controller under Docker Compose, with scheduled and on-demand backups and restore |
+| [apache_app](roles/apache_app) | A PHP/Apache application in Docker Compose serving one or more vhosts, with an optional private MySQL database, imports and backups |
 | [nginx_proxy](roles/nginx_proxy) | nginx reverse proxy on the host, with vhosts that switch to HTTPS once their Let's Encrypt certificate exists (pairs with geerlingguy.certbot) |
 
 ## License

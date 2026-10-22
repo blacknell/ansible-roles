@@ -1,0 +1,179 @@
+---
+argument_specs:
+  main:
+    short_description: Build and start the web (and database) containers, database users and backups
+    options: &all_options
+      apache_app_name:
+        type: str
+        required: true
+        description: Short name used for the compose project, containers (<name>-web, <name>-db) and files.
+      apache_app_user:
+        type: str
+        required: true
+        description: User that owns the compose project, docroots and backups.
+      apache_app_dir:
+        type: path
+        required: true
+        description: Folder for the compose project, html/, logs/ and backups/.
+      apache_app_port:
+        type: int
+        required: true
+        description: Host port published on 127.0.0.1 for the reverse proxy.
+      apache_app_vhosts:
+        type: list
+        elements: dict
+        required: true
+        description: The sites served by the web container.
+        options:
+          server_name:
+            type: str
+            required: true
+            description: Apache ServerName.
+          aliases:
+            type: list
+            elements: str
+            default: []
+            description: Apache ServerAlias names.
+          docroot:
+            type: str
+            description: Folder under <apache_app_dir>/html. Defaults to server_name.
+          env:
+            type: dict
+            default: {}
+            description: SetEnv for this site only; values may use ${VAR} from apache_app_env.
+          extra_config:
+            type: str
+            default: ""
+            description: Raw Apache lines for this VirtualHost.
+      apache_app_php_image:
+        type: str
+        default: php:8.3-apache
+        description: Base image.
+      apache_app_php_extensions:
+        type: list
+        elements: str
+        default: []
+        description: Extensions built in with docker-php-ext-install.
+      apache_app_apt_packages:
+        type: list
+        elements: str
+        default: []
+        description: Debian packages installed before building extensions.
+      apache_app_apache_modules:
+        type: list
+        elements: str
+        default: [rewrite, headers]
+        description: Apache modules to enable (remoteip is always added).
+      apache_app_php_ini:
+        type: dict
+        default: {expose_php: "Off"}
+        description: php.ini settings on top of php.ini-production.
+      apache_app_env:
+        type: dict
+        default: {}
+        description: Environment for the web container, written to a 0600 env file.
+      apache_app_log_files:
+        type: list
+        elements: str
+        default: []
+        description: Log files the app writes inside the container, bind-mounted from logs/.
+      apache_app_restart_policy:
+        type: str
+        default: unless-stopped
+        description: Compose restart policy.
+      apache_app_db:
+        type: bool
+        default: false
+        description: Run a MySQL container for the app, reachable as host "db".
+      apache_app_db_image:
+        type: str
+        default: mysql:8.4
+        description: Database image.
+      apache_app_db_name:
+        type: str
+        description: Database name. Defaults to apache_app_name.
+      apache_app_db_user:
+        type: str
+        description: App's database user, with all privileges on the database. Defaults to apache_app_name.
+      apache_app_db_password:
+        type: str
+        description: Password for apache_app_db_user. Required with apache_app_db.
+      apache_app_db_root_password:
+        type: str
+        description: MySQL root password. Required with apache_app_db.
+      apache_app_db_extra_users:
+        type: list
+        elements: dict
+        default: []
+        description: Extra database users.
+        options:
+          name:
+            type: str
+            required: true
+            description: User name (host %).
+          password:
+            type: str
+            required: true
+            description: Password.
+          grants:
+            type: list
+            elements: str
+            default: []
+            description: Grants as "PRIVILEGES ON db.table".
+      apache_app_db_import_file:
+        type: str
+        default: ""
+        description: .sql or .sql.gz dump on the host (db_import entry point).
+      apache_app_db_import_force:
+        type: bool
+        default: false
+        description: Replace a database that already has tables.
+      apache_app_db_backup:
+        type: bool
+        default: true
+        description: Install the nightly database backup.
+      apache_app_db_backup_dir:
+        type: path
+        description: Where dumps are written. Defaults to <apache_app_dir>/backups.
+      apache_app_db_backup_script:
+        type: path
+        description: Backup script path. Defaults to /usr/local/bin/<name>-db-backup.
+      apache_app_db_backup_log:
+        type: path
+        description: Backup log. Defaults to /var/log/<name>-db-backup.log.
+      apache_app_db_backup_keep_days:
+        type: int
+        default: 14
+        description: Dumps older than this are deleted.
+      apache_app_db_backup_min_bytes:
+        type: int
+        default: 1024
+        description: A dump smaller than this fails the backup.
+      apache_app_db_backup_cron:
+        type: bool
+        default: true
+        description: Schedule the nightly backup.
+      apache_app_db_backup_cron_hour:
+        type: str
+        default: "2"
+        description: Cron hour field.
+      apache_app_db_backup_cron_minute:
+        type: str
+        default: "45"
+        description: Cron minute field.
+      apache_app_logrotate:
+        type: bool
+        default: true
+        description: Install a logrotate config for the Apache and app logs.
+      apache_app_logrotate_rotate:
+        type: int
+        default: 14
+        description: Daily logs kept.
+
+  db_import:
+    short_description: Import a .sql or .sql.gz dump into the app's database
+    options: *all_options
+
+  backup_now:
+    short_description: Run the installed database backup now and verify the dump
+    options: *all_options

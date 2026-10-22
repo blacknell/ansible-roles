@@ -1,0 +1,41 @@
+---
+- name: Create the backup folder
+  ansible.builtin.file:
+    path: "{{ apache_app_db_backup_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  become: true
+  when: apache_app_db_backup | bool
+
+- name: Create the backup log
+  ansible.builtin.file:
+    path: "{{ apache_app_db_backup_log }}"
+    state: touch
+    owner: root
+    group: adm
+    mode: "0640"
+    access_time: preserve
+    modification_time: preserve
+  become: true
+  when: apache_app_db_backup | bool
+
+- name: Install the backup script
+  ansible.builtin.template:
+    src: db-backup.sh.j2
+    dest: "{{ apache_app_db_backup_script }}"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  when: apache_app_db_backup | bool
+
+- name: Schedule the nightly backup (root's crontab)
+  ansible.builtin.cron:
+    name: "{{ apache_app_name }} database backup"
+    minute: "{{ apache_app_db_backup_cron_minute }}"
+    hour: "{{ apache_app_db_backup_cron_hour }}"
+    job: "{{ apache_app_db_backup_script | quote }} >> {{ apache_app_db_backup_log | quote }} 2>&1"
+    state: "{{ 'present' if (apache_app_db_backup | bool and apache_app_db_backup_cron | bool) else 'absent' }}"
+  become: true

@@ -1,0 +1,127 @@
+---
+# Imports a .sql or .sql.gz dump (e.g. from mysqldump on the old host) into
+# the app's database. Refuses if the database already has tables unless
+# apache_app_db_import_force is true, in which case it's emptied first.
+- name: Check a dump file was given
+  ansible.builtin.assert:
+    that:
+      - apache_app_db | bool
+      - apache_app_db_import_file | length > 0
+    fail_msg: >-
+      Set apache_app_db_import_file to the .sql or .sql.gz on the host, e.g.
+      -e apache_app_db_import_file=/home/paul/myapp.sql.gz
+    quiet: true
+
+- name: Check the dump file exists
+  ansible.builtin.stat:
+    path: "{{ apache_app_db_import_file }}"
+  register: __apache_app_import_stat
+  become: true
+
+- name: Verify the dump file
+  ansible.builtin.assert:
+    that:
+      - __apache_app_import_stat.stat.exists
+      - __apache_app_import_stat.stat.isreg
+      - __apache_app_import_stat.stat.size > 0
+    fail_msg: "{{ apache_app_db_import_file }} is missing, not a file, or empty."
+    success_msg: "{{ apache_app_db_import_file | basename }}: {{ __apache_app_import_stat.stat.size | default(0) | human_readable }}"
+
+- name: Test the gzip file reads cleanly
+  ansible.builtin.command:
+    argv: [gzip, -t, "{{ apache_app_db_import_file }}"]
+  changed_when: false
+  become: true
+  when: apache_app_db_import_file is search('\.gz$')
+
+- name: Wait for the database
+  ansible.builtin.import_tasks: db_wait.yml
+
+- name: Count the tables already in the database
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ __apache_app_db }}"
+      - sh
+      - -c
+      - >-
+        MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -N -B
+        -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()"
+        "$MYSQL_DATABASE"
+  register: __apache_app_import_count
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+
+- name: Refuse to import over existing tables
+  ansible.builtin.assert:
+    that: >-
+      (__apache_app_import_count.stdout | default('0') | int) == 0
+      or apache_app_db_import_force | bool
+    fail_msg: >-
+      {{ apache_app_db_name }} already has {{ __apache_app_import_count.stdout | default('?') }}
+      tables. Set apache_app_db_import_force=true to drop them and import.
+    quiet: true
+
+- name: Report what a real run would do (check mode only)
+  ansible.builtin.debug:
+    msg: "Check mode: would import {{ apache_app_db_import_file }} into {{ apache_app_db_name }}"
+  when: ansible_check_mode
+
+- name: Empty the database
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ __apache_app_db }}"
+      - sh
+      - -c
+      - 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -e "DROP DATABASE \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\`"'
+  changed_when: true
+  become: true
+  when:
+    - not ansible_check_mode
+    - (__apache_app_import_count.stdout | default('0') | int) > 0
+
+- name: Import the dump
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      {{ 'gunzip -c' if apache_app_db_import_file is search('\.gz$') else 'cat' }}
+      {{ apache_app_db_import_file | quote }}
+      | docker exec -i {{ __apache_app_db | quote }}
+      sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$MYSQL_DATABASE"'
+    executable: /bin/bash
+  changed_when: true
+  become: true
+  when: not ansible_check_mode
+
+- name: Show the imported tables
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ __apache_app_db }}"
+      - sh
+      - -c
+      - >-
+        MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -t
+        -e "SELECT table_name, table_rows FROM information_schema.tables WHERE table_schema = DATABASE()"
+        "$MYSQL_DATABASE"
+  register: __apache_app_import_tables
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+
+- name: Imported tables
+  ansible.builtin.debug:
+    var: __apache_app_import_tables.stdout_lines
+  when: not ansible_check_mode
+
+# Table-level grants (e.g. a health check user) need the tables to exist
+- name: Re-apply users and grants now the tables exist
+  ansible.builtin.include_tasks:
+    file: db_users.yml
+    apply:
+      tags: [db_import]

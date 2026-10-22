@@ -1,0 +1,28 @@
+---
+# Each file can also be called on its own:
+#   include_role: { name: apache_app, tasks_from: db_import }   import a dump
+#   include_role: { name: apache_app, tasks_from: backup_now }  back up now
+
+- name: Check the settings
+  ansible.builtin.import_tasks: checks.yml
+
+- name: Build and start the containers
+  ansible.builtin.import_tasks: install.yml
+
+- name: Database users and grants
+  ansible.builtin.import_tasks: db_users.yml
+  when: apache_app_db | bool
+
+- name: Database backups
+  ansible.builtin.import_tasks: backup_install.yml
+  when: apache_app_db | bool
+
+# Only runs when asked for with --tags db_import
+- name: Import a database dump
+  ansible.builtin.import_tasks: db_import.yml
+  tags: [db_import, never]
+
+# Only runs when asked for with --tags backup_now
+- name: Back up the database now
+  ansible.builtin.import_tasks: backup_now.yml
+  tags: [backup_now, never]

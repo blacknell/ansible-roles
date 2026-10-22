@@ -88,8 +88,11 @@
 - name: Report each site
   ansible.builtin.debug:
     msg: >-
-      {{ ('HTTP only: no certificate yet' ~ ('' if item.issue else ' (issue: false)')) if not __c.present
-         else ('HTTPS -> ' ~ item.upstream ~ ', certificate valid ' ~ __c.days ~ ' days (until ' ~ __c.end ~ ')' ~ __notes) }}
+      {{ (('HTTP redirect -> ' ~ item.redirect_to ~ ' only' if item.redirect_to is defined else 'HTTP only')
+          ~ ': no certificate yet' ~ ('' if item.issue else ' (issue: false)')) if not __c.present
+         else ('HTTPS '
+               ~ (('redirect -> ' ~ item.redirect_to) if item.redirect_to is defined else ('-> ' ~ item.upstream))
+               ~ ', certificate valid ' ~ __c.days ~ ' days (until ' ~ __c.end ~ ')' ~ __notes) }}
   vars:
     __c: "{{ __nginx_proxy_certs[item.name] }}"
     __notes: >-

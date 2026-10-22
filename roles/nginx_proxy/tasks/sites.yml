@@ -24,11 +24,16 @@
       dashes or underscores, and not {{ __nginx_proxy_default_site }} or default.
     quiet: true
 
-# Keeps proxy_pass passing the request URI through unchanged
-- name: Check each upstream is scheme://host:port with no path
+# Exactly one of upstream / redirect_to. No path, so proxy_pass passes the
+# request URI through unchanged and a redirect appends it cleanly.
+- name: Check each site has an upstream or a redirect, as scheme://host[:port] with no path
   ansible.builtin.assert:
-    that: item.upstream is match('^https?://[^/\s]+$')
-    fail_msg: "{{ item.name }}: upstream {{ item.upstream }} must be scheme://host:port with no path or trailing slash."
+    that:
+      - (item.upstream is defined) != (item.redirect_to is defined)
+      - (item.upstream | default(item.redirect_to | default(''))) is match('^https?://[^/\s]+$')
+    fail_msg: >-
+      {{ item.name }}: set exactly one of upstream or redirect_to, as
+      scheme://host[:port] with no path or trailing slash.
     quiet: true
   loop: "{{ __nginx_proxy_sites }}"
   loop_control:

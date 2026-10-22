@@ -1,0 +1,27 @@
+---
+- name: Test apache_app role
+  hosts: localhost
+  vars:
+    apache_app_name: example
+    apache_app_user: www-data
+    apache_app_dir: /srv/sites/example
+    apache_app_port: 8101
+    apache_app_php_extensions: [pdo_mysql, mysqli]
+    apache_app_env:
+      MYSQL_SETTINGS_DSN: mysql:host=db;dbname=example
+      API_KEY_WWW: not-a-real-key
+    apache_app_log_files: [/var/log/example.log]
+    apache_app_vhosts:
+      - server_name: www.example.com
+        env:
+          API_KEY: "${API_KEY_WWW}"
+      - server_name: beta.example.com
+    apache_app_db: true
+    apache_app_db_password: example-password
+    apache_app_db_root_password: example-root-password
+    apache_app_db_extra_users:
+      - name: healthcheck
+        password: healthcheck-password
+        grants: ["SELECT ON example.settings"]
+  roles:
+    - apache_app

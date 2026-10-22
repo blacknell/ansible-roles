@@ -6,7 +6,8 @@
 
 # One entry per vhost and certificate:
 #   - name: ci.example.com              vhost filename and certificate name (required)
-#     upstream: http://127.0.0.1:8080   scheme://host:port, no path (required)
+#     upstream: http://127.0.0.1:8080   scheme://host:port, no path (this or redirect_to)
+#     redirect_to: https://www.ex.com   301 everything there instead, keeping the path
 #     domains: [ci.example.com]         names on the cert and vhost (default: [name])
 #     state: present                    absent removes the vhost (the cert is kept)
 #     issue: true                       include in nginx_proxy_certbot_certs
