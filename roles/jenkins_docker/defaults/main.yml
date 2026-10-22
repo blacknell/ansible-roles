@@ -36,6 +36,14 @@ jenkins_docker_casc: false
 # Optional folder on the Ansible controller whose files are copied into casc/
 jenkins_docker_casc_src: ""
 
+# --- Restore ----------------------------------------------------------------
+
+# A jenkins-home-<stamp>.tar.gz made by the backup script, already on the host.
+# Only used by the restore entry point (--tags restore).
+jenkins_docker_restore_file: ""
+# Restore into a volume that already has data in it (it's emptied first)
+jenkins_docker_restore_force: false
+
 # --- Backups ----------------------------------------------------------------
 
 # Where backup tarballs are written

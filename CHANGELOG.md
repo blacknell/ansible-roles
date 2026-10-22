@@ -2,6 +2,13 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.10.0
+
+### Added
+
+- nginx_proxy: new role. nginx reverse proxy on the host from the distro package, vhosts from `nginx_proxy_sites`. A site's HTTPS server is only written once its certificate exists, so a missing certificate can't stop nginx for the other sites. Sets `nginx_proxy_certbot_certs` for geerlingguy.certbot, installs a deploy hook that reloads nginx after renewal, and points copied-in certificates' renewal configs at its ACME folder
+- jenkins_docker: `restore` entry point (`--tags restore`) restores a `jenkins-home-*.tar.gz` backup into the volume, after checking the tarball reads cleanly
+
 ## 1.9.0
 
 ### Changed

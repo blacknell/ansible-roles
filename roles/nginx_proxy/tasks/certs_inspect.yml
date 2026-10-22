@@ -1,0 +1,42 @@
+---
+# Builds __nginx_proxy_certs: { <site name>: {present, end, days, staging, sans} }
+- name: Start with no certificate details
+  ansible.builtin.set_fact:
+    __nginx_proxy_certs: {}
+
+- name: Read each site's certificate
+  ansible.builtin.shell: |
+    set -o pipefail
+    f={{ (nginx_proxy_letsencrypt_dir ~ '/live/' ~ item.name ~ '/fullchain.pem') | quote }}
+    if [ ! -e "$f" ]; then printf 'present\tno\n'; exit 0; fi
+    end=$(openssl x509 -in "$f" -noout -enddate | cut -d= -f2)
+    printf 'present\tyes\n'
+    printf 'end\t%s\n' "$end"
+    printf 'days\t%s\n' "$(( ( $(date -d "$end" +%s) - $(date +%s) ) / 86400 ))"
+    printf 'issuer\t%s\n' "$(openssl x509 -in "$f" -noout -issuer)"
+    printf 'sans\t%s\n' "$(openssl x509 -in "$f" -noout -ext subjectAltName | grep -o 'DNS:[^, ]*' | cut -d: -f2 | sort | tr '\n' ' ')"
+  args:
+    executable: /bin/bash
+  loop: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: __nginx_proxy_cert_read
+  changed_when: false
+  check_mode: false
+  become: true
+
+- name: Record the certificate details
+  ansible.builtin.set_fact:
+    __nginx_proxy_certs: >-
+      {{ __nginx_proxy_certs | combine({item.item.name: {
+           'present': __info.present == 'yes',
+           'end': __info.end | default(''),
+           'days': __info.days | default(0) | int,
+           'staging': 'STAGING' in (__info.issuer | default('')),
+           'sans': __info.sans | default('') | split(' ') | select | sort,
+         }}) }}
+  vars:
+    __info: "{{ dict(item.stdout_lines | map('split', '\t')) }}"
+  loop: "{{ __nginx_proxy_cert_read.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"

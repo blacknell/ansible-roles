@@ -1,0 +1,5 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# certbot deploy hook: runs once per renewed certificate. nginx keeps the old
+# certificate in memory until it reloads.
+nginx -t -q && systemctl reload nginx
