@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.12.0
+
+### Added
+
+- swap: new role. Adds a swap file (`fallocate`, `mkswap`, fstab) and sets `vm.swappiness` on Debian hosts that set `swap_file_size_mb`; off by default so it can run on every host. Skips hosts where `dphys-swapfile` manages swap, and reports rather than resizes a swap file of a different size
+
 ## 1.11.0
 
 ### Added
