@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.12.1
+
+### Fixed
+
+- nginx_proxy: a copied-in certificate first issued with another plugin (e.g. apache) has no webroot settings, so switching its renewal config to webroot left renewal with nowhere to put the challenge. The role now adds `webroot_path` and a `[[webroot_map]]` for the certificate's domains when they're missing, as well as rewriting them when they point elsewhere
+
 ## 1.12.0
 
 ### Added

@@ -1,7 +1,11 @@
 ---
 # Renewal reads each certificate's renewal/<name>.conf. One copied from
 # another host may name a different webroot, authenticator or installer, so
-# point every managed one at the ACME folder used here.
+# point every managed one at the ACME folder used here. A certificate first
+# issued with another plugin (e.g. apache) has no webroot settings at all, so
+# those are added: webroot_path at the top of [renewalparams], and a
+# [[webroot_map]] subsection, which has to come after the section's own
+# settings, at its end.
 - name: Find the renewal config of each certificate
   ansible.builtin.stat:
     path: "{{ nginx_proxy_letsencrypt_dir }}/renewal/{{ item.name }}.conf"
@@ -32,10 +36,45 @@
       - what: installer
         regexp: '^installer = (?!None$).*$'
         replace: installer = None
-      - what: webroot_path
-        regexp: '^webroot_path = (?!{{ nginx_proxy_acme_root }},$).*$'
-        replace: webroot_path = {{ nginx_proxy_acme_root }},
       - what: webroot_map
         regexp: '^((?:[A-Za-z0-9*-]+\.)+[A-Za-z0-9-]+) = (?!{{ nginx_proxy_acme_root }}$).*$'
         replace: '\1 = {{ nginx_proxy_acme_root }}'
+  become: true
+
+- name: Set the webroot path in renewal configs
+  ansible.builtin.lineinfile:
+    path: "{{ item.stat.path }}"
+    regexp: '^webroot_path = '
+    line: "webroot_path = {{ nginx_proxy_acme_root }},"
+    insertafter: '^\[renewalparams\]$'
+  loop: "{{ __nginx_proxy_renewal_confs.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  become: true
+
+- name: Check which renewal configs have a webroot map
+  ansible.builtin.command:
+    cmd: grep -q '^\[\[webroot_map\]\]$' {{ item.stat.path | quote }}
+  loop: "{{ __nginx_proxy_renewal_confs.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  register: __nginx_proxy_webroot_maps
+  changed_when: false
+  failed_when: __nginx_proxy_webroot_maps.rc is not defined or __nginx_proxy_webroot_maps.rc > 1
+  check_mode: false
+  become: true
+
+- name: Add a webroot map to renewal configs without one
+  ansible.builtin.replace:
+    path: "{{ item.item.stat.path }}"
+    # The whole [renewalparams] section, up to the next section or the end
+    regexp: '^(\[renewalparams\]\n(?:[^\[\n].*\n|\n)*)'
+    replace: |
+      \1[[webroot_map]]
+      {% for domain in item.item.item.domains %}
+      {{ domain }} = {{ nginx_proxy_acme_root }}
+      {% endfor %}
+  loop: "{{ __nginx_proxy_webroot_maps.results | selectattr('rc', 'eq', 1) | list }}"
+  loop_control:
+    label: "{{ item.item.item.name }}"
   become: true
