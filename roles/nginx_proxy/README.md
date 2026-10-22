@@ -37,7 +37,8 @@ writes the nginx side and hands certbot its list of certificates.
 | Key | Default | Description |
 |---|---|---|
 | `name` | required | Vhost filename and certificate name |
-| `upstream` | required | `scheme://host:port`, with no path or trailing slash, e.g. `http://127.0.0.1:8080` |
+| `upstream` | | `scheme://host:port`, with no path or trailing slash, e.g. `http://127.0.0.1:8080`. Set this or `redirect_to` |
+| `redirect_to` | | Instead of proxying, `301` every request to this `scheme://host`, keeping the path and query, e.g. `https://www.example.com` for a bare domain. It still gets its own certificate, so HTTPS requests to it redirect too |
 | `domains` | `[name]` | Names on the certificate and the vhost |
 | `state` | `present` | `absent` removes the vhost (the certificate is kept) |
 | `issue` | `true` | Include the site in `nginx_proxy_certbot_certs`. `false` until DNS points here, or for a certificate you copy in yourself |

@@ -1,0 +1,4 @@
+; {{ ansible_managed }}
+{% for key, value in apache_app_php_ini.items() %}
+{{ key }} = {{ value }}
+{% endfor %}

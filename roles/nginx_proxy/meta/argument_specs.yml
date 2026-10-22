@@ -15,8 +15,12 @@ argument_specs:
             description: Vhost filename and certificate name.
           upstream:
             type: str
-            required: true
-            description: scheme://host:port to proxy to, with no path.
+            description: scheme://host:port to proxy to, with no path. Set this or redirect_to.
+          redirect_to:
+            type: str
+            description: >-
+              Instead of proxying, 301-redirect every request to this scheme://host (the path
+              and query are kept), e.g. https://www.example.com. Set this or upstream.
           domains:
             type: list
             elements: str

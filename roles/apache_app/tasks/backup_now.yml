@@ -1,0 +1,31 @@
+---
+- name: Check the backup script is installed
+  ansible.builtin.stat:
+    path: "{{ apache_app_db_backup_script }}"
+  register: __apache_app_backup_script
+  become: true
+
+- name: Verify the backup script is executable
+  ansible.builtin.assert:
+    that:
+      - __apache_app_backup_script.stat.exists
+      - __apache_app_backup_script.stat.executable
+    fail_msg: "{{ apache_app_db_backup_script }} is missing. Run the role first."
+    quiet: true
+
+- name: Run the backup (output also appended to {{ apache_app_db_backup_log }})
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      {{ apache_app_db_backup_script | quote }} 2>&1
+      | tee -a {{ apache_app_db_backup_log | quote }}
+    executable: /bin/bash
+  register: __apache_app_backup_result
+  changed_when: true
+  become: true
+  when: not ansible_check_mode
+
+- name: Show the backup output
+  ansible.builtin.debug:
+    var: __apache_app_backup_result.stdout_lines
+  when: not ansible_check_mode

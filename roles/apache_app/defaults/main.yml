@@ -1,0 +1,84 @@
+---
+# Required, no defaults (see meta/argument_specs.yml):
+#   apache_app_name     short name: compose project, container and file names
+#   apache_app_user     user that owns the compose project, docroots and backups
+#   apache_app_dir      folder for the compose project, docroots, logs and backups
+#   apache_app_port     host port published on 127.0.0.1 for a reverse proxy
+#   apache_app_vhosts   the sites this app serves (see below)
+
+# One entry per site, all served by the same web container:
+#   - server_name: www.example.com       required
+#     aliases: []                         extra ServerAlias names
+#     docroot: www.example.com            folder under <apache_app_dir>/html (default: server_name)
+#     env: {}                             SetEnv for this site only. Values may use ${VAR} to
+#                                         read a variable from apache_app_env, so secrets stay
+#                                         in the env file, e.g. IPAPI_API_KEY: "${IPAPI_KEY_WWW}"
+#     extra_config: ""                    raw Apache lines for this <VirtualHost>
+apache_app_vhosts: []
+
+# --- Web container ------------------------------------------------------------
+
+apache_app_php_image: php:8.3-apache
+# Built in with docker-php-ext-install, e.g. [pdo_mysql, mysqli]
+apache_app_php_extensions: []
+# Debian packages some extensions need to build (e.g. libzip-dev for zip)
+apache_app_apt_packages: []
+# Apache modules to enable (remoteip is always enabled)
+apache_app_apache_modules:
+  - rewrite
+  - headers
+# php.ini settings on top of php.ini-production
+apache_app_php_ini:
+  expose_php: "Off"
+# Environment for the web container (all sites). Written to a 0600 env file;
+# put secrets here rather than in apache_app_vhosts.
+apache_app_env: {}
+# Log files the application writes inside the container, e.g.
+# [/var/log/myapp.log]. Each is bind-mounted from <apache_app_dir>/logs/,
+# owned by the container's www-data.
+apache_app_log_files: []
+apache_app_restart_policy: unless-stopped
+
+# --- Database -----------------------------------------------------------------
+
+# A MySQL container on a network only the web container can reach.
+# The app reaches it as host "db".
+apache_app_db: false
+apache_app_db_image: mysql:8.4
+apache_app_db_name: "{{ apache_app_name }}"
+apache_app_db_user: "{{ apache_app_name }}"
+# Required when apache_app_db is true:
+#   apache_app_db_password, apache_app_db_root_password
+# Extra users, e.g. a health check:
+#   - name: areyouthere
+#     password: "..."
+#     grants: ["SELECT ON myapp.settings"]
+# Table-level grants are skipped (with a warning) until the table exists, e.g.
+# before the first import; they're applied again after db_import.
+apache_app_db_extra_users: []
+
+# --- Database import (db_import entry point only) -----------------------------
+
+# A .sql or .sql.gz dump already on the host
+apache_app_db_import_file: ""
+# Replace a database that already has tables
+apache_app_db_import_force: false
+
+# --- Database backups ---------------------------------------------------------
+
+apache_app_db_backup: true
+apache_app_db_backup_dir: "{{ apache_app_dir }}/backups"
+apache_app_db_backup_script: "/usr/local/bin/{{ apache_app_name }}-db-backup"
+apache_app_db_backup_log: "/var/log/{{ apache_app_name }}-db-backup.log"
+apache_app_db_backup_keep_days: 14
+# A dump smaller than this is treated as a failed backup
+apache_app_db_backup_min_bytes: 1024
+apache_app_db_backup_cron: true
+apache_app_db_backup_cron_hour: "2"
+apache_app_db_backup_cron_minute: "45"
+
+# --- Logs ---------------------------------------------------------------------
+
+# /etc/logrotate.d/<apache_app_name> for the Apache and application logs
+apache_app_logrotate: true
+apache_app_logrotate_rotate: 14

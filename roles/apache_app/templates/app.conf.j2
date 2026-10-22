@@ -1,0 +1,26 @@
+# {{ ansible_managed }}
+# Server-wide settings for {{ apache_app_name }}, loaded after the image's own conf.
+
+ServerName localhost
+ServerTokens Prod
+ServerSignature Off
+
+# The reverse proxy on the host connects from Docker's network; take the real
+# client address from X-Forwarded-For, so logs and $_SERVER['REMOTE_ADDR']
+# show it (the rightmost untrusted entry wins, so a client can't spoof it).
+RemoteIPHeader X-Forwarded-For
+RemoteIPInternalProxy 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 127.0.0.1
+
+# TLS ends at the proxy; tell PHP the original request was HTTPS
+SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
+
+# %a is the client address after remoteip (%h would be the proxy)
+LogFormat "%v %a %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" app_combined
+
+<Directory /var/www/sites>
+    Options FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+
+RedirectMatch 404 /\.git

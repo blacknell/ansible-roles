@@ -1,0 +1,57 @@
+# {{ ansible_managed }}
+name: {{ apache_app_name | to_json }}
+
+services:
+  web:
+    build: ./web
+    image: {{ (apache_app_name ~ '-web:local') | to_json }}
+    container_name: {{ __apache_app_web | to_json }}
+    ports:
+      - {{ ('127.0.0.1:' ~ apache_app_port ~ ':80') | to_json }}
+    env_file:
+      - web.env
+    volumes:
+      - ./html:/var/www/sites:ro
+      - ./apache/app.conf:/etc/apache2/conf-enabled/zz-app.conf:ro
+      - ./apache/sites:/etc/apache2/sites-enabled:ro
+      - ./logs/apache:/var/log/apache2
+{% for f in apache_app_log_files %}
+      - {{ ('./logs/' ~ (f | basename) ~ ':' ~ f) | to_json }}
+{% endfor %}
+{% if apache_app_db | bool %}
+    networks:
+      - default
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+{% endif %}
+    restart: {{ apache_app_restart_policy | to_json }}
+{% if apache_app_db | bool %}
+
+  db:
+    image: {{ apache_app_db_image | to_json }}
+    container_name: {{ __apache_app_db | to_json }}
+    env_file:
+      - db.env
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: {{ apache_app_restart_policy | to_json }}
+
+networks:
+  # No route out and no published ports: only the web container reaches it
+  backend:
+    internal: true
+
+volumes:
+  db-data:
+    name: {{ (apache_app_name ~ '_db-data') | to_json }}
+{% endif %}

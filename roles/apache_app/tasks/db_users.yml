@@ -1,0 +1,75 @@
+---
+# Users are (re)applied on every run: CREATE USER IF NOT EXISTS, then ALTER
+# USER so a changed password takes effect, then GRANT. SQL goes in on stdin so
+# passwords never appear in a process list.
+- name: Wait for the database
+  ansible.builtin.import_tasks: db_wait.yml
+
+- name: List the database's tables
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ __apache_app_db }}"
+      - sh
+      - -c
+      - >-
+        MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot -N -B
+        -e "SELECT CONCAT(table_schema, '.', table_name) FROM information_schema.tables
+        WHERE table_schema = DATABASE()" "$MYSQL_DATABASE"
+  register: __apache_app_db_tables
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+
+# A grant on one table fails until that table exists (before the first
+# import), so those are left out and listed; db_import applies them after.
+- name: Work out which grants can be applied now
+  ansible.builtin.set_fact:
+    __apache_app_grants: >-
+      {%- set ns = namespace(ok=[], skipped=[]) -%}
+      {%- set tables = __apache_app_db_tables.stdout_lines | default([]) -%}
+      {%- for u in apache_app_db_extra_users -%}
+      {%-   for g in u.grants | default([]) -%}
+      {%-     set m = g | regex_search('\\bON\\s+`?([A-Za-z0-9_]+)`?\\.`?([A-Za-z0-9_*]+)`?', '\\1', '\\2') -%}
+      {%-     if m and m[1] != '*' and (m[0] ~ '.' ~ m[1]) not in tables -%}
+      {%-       set ns.skipped = ns.skipped + [u.name ~ ': ' ~ g] -%}
+      {%-     else -%}
+      {%-       set ns.ok = ns.ok + [{'user': u.name, 'grant': g}] -%}
+      {%-     endif -%}
+      {%-   endfor -%}
+      {%- endfor -%}
+      {{ {'ok': ns.ok, 'skipped': ns.skipped} }}
+
+- name: Report grants waiting for their tables
+  ansible.builtin.debug:
+    msg: "Skipped until the table exists (run db_import): {{ __apache_app_grants.skipped | join('; ') }}"
+  when: __apache_app_grants.skipped | length > 0
+
+- name: Apply database users and grants
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ __apache_app_db }}"
+      - sh
+      - -c
+      - 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot'
+    stdin: |
+      {% set q = "'" %}
+      CREATE USER IF NOT EXISTS '{{ apache_app_db_user }}'@'%' IDENTIFIED BY '{{ apache_app_db_password | replace('\\', '\\\\') | replace(q, q ~ q) }}';
+      ALTER USER '{{ apache_app_db_user }}'@'%' IDENTIFIED BY '{{ apache_app_db_password | replace('\\', '\\\\') | replace(q, q ~ q) }}';
+      GRANT ALL PRIVILEGES ON `{{ apache_app_db_name }}`.* TO '{{ apache_app_db_user }}'@'%';
+      {% for u in apache_app_db_extra_users %}
+      CREATE USER IF NOT EXISTS '{{ u.name }}'@'%' IDENTIFIED BY '{{ u.password | replace('\\', '\\\\') | replace(q, q ~ q) }}';
+      ALTER USER '{{ u.name }}'@'%' IDENTIFIED BY '{{ u.password | replace('\\', '\\\\') | replace(q, q ~ q) }}';
+      {% endfor %}
+      {% for g in __apache_app_grants.ok %}
+      GRANT {{ g.grant }} TO '{{ g.user }}'@'%';
+      {% endfor %}
+      FLUSH PRIVILEGES;
+  changed_when: false
+  become: true
+  no_log: true
+  when: not ansible_check_mode

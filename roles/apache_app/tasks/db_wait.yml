@@ -1,0 +1,11 @@
+---
+- name: Wait for the database to be healthy
+  ansible.builtin.command:
+    argv: [docker, inspect, -f, "{{ '{{.State.Health.Status}}' }}", "{{ __apache_app_db }}"]
+  register: __apache_app_db_health
+  until: __apache_app_db_health.stdout == 'healthy'
+  retries: 30
+  delay: 5
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
