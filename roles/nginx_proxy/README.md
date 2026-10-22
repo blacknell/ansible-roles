@@ -18,7 +18,8 @@ writes the nginx side and hands certbot its list of certificates.
 - **A certbot deploy hook** reloads nginx after a certificate renews (nginx keeps the old
   one in memory until then).
 - **Renewal configs** of managed certificates are pointed at `nginx_proxy_acme_root`, so a
-  certificate copied from another host renews here.
+  certificate copied from another host renews here, including one first issued with
+  another plugin such as apache (the webroot settings are added).
 - Every change is checked with `nginx -t` before nginx is reloaded.
 
 ## Requirements
