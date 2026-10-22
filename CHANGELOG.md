@@ -2,7 +2,7 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
-## Unreleased
+## 1.10.0
 
 ### Added
 
