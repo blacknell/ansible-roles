@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+FROM {{ apache_app_php_image }}
+{% if apache_app_apt_packages | length > 0 %}
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends {{ apache_app_apt_packages | join(' ') }} \
+ && rm -rf /var/lib/apt/lists/*
+{% endif %}
+{% if apache_app_php_extensions | length > 0 %}
+
+RUN docker-php-ext-install -j"$(nproc)" {{ apache_app_php_extensions | join(' ') }}
+{% endif %}
+
+RUN a2enmod {{ __apache_app_modules | join(' ') }} \
+ && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+COPY app.ini "$PHP_INI_DIR/conf.d/zz-app.ini"

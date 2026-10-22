@@ -1,0 +1,132 @@
+---
+- name: Create the folders owned by {{ apache_app_user }}
+  ansible.builtin.file:
+    path: "{{ apache_app_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ apache_app_user }}"
+    mode: "0755"
+  loop: >-
+    {{ ['', 'web', 'apache', 'apache/sites', 'html']
+       + (__apache_app_vhosts | map(attribute='docroot') | map('regex_replace', '^', 'html/') | list) }}
+  become: true
+
+# Apache writes these as root inside the container
+- name: Create the log folders
+  ansible.builtin.file:
+    path: "{{ apache_app_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [logs, logs/apache]
+  become: true
+
+# Bind-mounted as single files, so they have to exist first, writable by
+# the container's www-data
+- name: Create the app's log files
+  ansible.builtin.file:
+    path: "{{ apache_app_dir }}/logs/{{ item | basename }}"
+    state: touch
+    owner: "{{ __apache_app_www_uid }}"
+    group: adm
+    mode: "0640"
+    access_time: preserve
+    modification_time: preserve
+  loop: "{{ apache_app_log_files }}"
+  become: true
+
+- name: Write the image build files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ apache_app_dir }}/web/{{ item.dest }}"
+    owner: "{{ apache_app_user }}"
+    mode: "0644"
+  loop:
+    - { src: Dockerfile.j2, dest: Dockerfile }
+    - { src: app.ini.j2, dest: app.ini }
+    - { src: dockerignore.j2, dest: .dockerignore }
+  loop_control:
+    label: "{{ item.dest }}"
+  become: true
+  register: __apache_app_build_files
+
+- name: Write the Apache config
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ apache_app_dir }}/apache/{{ item.dest }}"
+    owner: "{{ apache_app_user }}"
+    mode: "0644"
+  loop:
+    - { src: app.conf.j2, dest: app.conf }
+    - { src: vhosts.conf.j2, dest: sites/vhosts.conf }
+  loop_control:
+    label: "{{ item.dest }}"
+  become: true
+  register: __apache_app_apache_conf
+
+- name: Write the env files
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ apache_app_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ ['web.env'] + (['db.env'] if apache_app_db | bool else []) }}"
+  become: true
+  no_log: true
+
+- name: Write the compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ apache_app_dir }}/docker-compose.yml"
+    owner: "{{ apache_app_user }}"
+    mode: "0644"
+  become: true
+
+# Rebuilds the image only when its build files changed; compose recreates a
+# container when its image, env files or settings change.
+- name: Build and start the containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ apache_app_dir }}"
+    build: "{{ 'always' if __apache_app_build_files is changed else 'policy' }}"
+    state: present
+    wait: true
+    wait_timeout: 300
+  become: true
+  register: __apache_app_up
+
+# vhosts and app.conf are bind-mounted, so a changed file needs a graceful
+# restart unless the container was just (re)created anyway
+- name: Test the Apache config
+  ansible.builtin.command:
+    argv: [docker, exec, "{{ __apache_app_web }}", apache2ctl, -t]
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+
+- name: Reload Apache
+  ansible.builtin.command:
+    argv: [docker, exec, "{{ __apache_app_web }}", apache2ctl, graceful]
+  changed_when: true
+  become: true
+  when:
+    - __apache_app_apache_conf is changed
+    - __apache_app_up is not changed
+    - not ansible_check_mode
+
+- name: Install the logrotate config
+  ansible.builtin.template:
+    src: logrotate.j2
+    dest: /etc/logrotate.d/{{ apache_app_name }}
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: apache_app_logrotate | bool
+
+- name: Remove the logrotate config
+  ansible.builtin.file:
+    path: /etc/logrotate.d/{{ apache_app_name }}
+    state: absent
+  become: true
+  when: not apache_app_logrotate | bool

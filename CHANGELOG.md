@@ -2,6 +2,13 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Added
+
+- apache_app: new role. A PHP application under Apache in Docker Compose serving one or more vhosts from one web container (`php:8.3-apache` by default, `mod_remoteip`, `.htaccess`), published on `127.0.0.1` for a reverse proxy, with an optional MySQL container on an internal network. Database users and grants on every run, `db_import` for a `.sql`/`.sql.gz` dump, nightly gzipped backups and logrotate
+- nginx_proxy: `redirect_to` on a site, instead of `upstream`, to 301 every request to another host (e.g. a bare domain to `www`), keeping the path
+
 ## 1.10.0
 
 ### Added

@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+
+# First vhost = default: requests for any other name get a 404
+<VirtualHost *:80>
+    ServerName default.invalid
+    DocumentRoot /var/www/html
+    Redirect 404 /
+    ErrorLog /var/log/apache2/default-error.log
+    CustomLog /var/log/apache2/default-access.log app_combined
+</VirtualHost>
+{% for v in __apache_app_vhosts %}
+
+<VirtualHost *:80>
+    ServerName {{ v.server_name }}
+{% for alias in v.aliases %}
+    ServerAlias {{ alias }}
+{% endfor %}
+    DocumentRoot /var/www/sites/{{ v.docroot }}
+    ErrorLog /var/log/apache2/{{ v.server_name }}-error.log
+    CustomLog /var/log/apache2/{{ v.server_name }}-access.log app_combined
+{% for key, value in v.env.items() %}
+    SetEnv {{ key }} "{{ value | string | replace('\\', '\\\\') | replace('"', '\\"') }}"
+{% endfor %}
+{% if v.extra_config | length > 0 %}
+    {{ v.extra_config | trim | indent(4) }}
+{% endif %}
+</VirtualHost>
+{% endfor %}

@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 {% set site = __nginx_proxy_site %}
 {% set has_cert = __nginx_proxy_certs[site.name].present %}
-# {{ site.name }} -> {{ site.upstream }}
+# {{ site.name }} {{ ('redirect -> ' ~ site.redirect_to) if site.redirect_to is defined else ('-> ' ~ site.upstream) }}
 # Certificate: {{ 'present' if has_cert else 'none yet, so HTTP and ACME only' }}
 
 server {
@@ -19,7 +19,9 @@ server {
     }
 
     location / {
-{% if has_cert %}
+{% if site.redirect_to is defined %}
+        return 301 {{ site.redirect_to }}$request_uri;
+{% elif has_cert %}
         return 301 https://$host$request_uri;
 {% else %}
         return 503;
@@ -52,6 +54,9 @@ server {
 {% endif %}
 
     location / {
+{% if site.redirect_to is defined %}
+        return 301 {{ site.redirect_to }}$request_uri;
+{% else %}
         proxy_pass {{ site.upstream }};
         include /etc/nginx/snippets/nginx-proxy-headers.conf;
 {% if not site.proxy_buffering %}
@@ -59,6 +64,7 @@ server {
 {% endif %}
 {% if site.extra_location_config | length > 0 %}
         {{ site.extra_location_config | trim | indent(8) }}
+{% endif %}
 {% endif %}
     }
 }

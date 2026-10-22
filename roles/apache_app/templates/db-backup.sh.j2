@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Dumps the {{ apache_app_db_name }} database from {{ __apache_app_db }} to
+# {{ apache_app_db_backup_dir }}. Exits non-zero if anything is wrong.
+set -euo pipefail
+
+BACKUP_DIR={{ apache_app_db_backup_dir | quote }}
+CONTAINER={{ __apache_app_db | quote }}
+KEEP_DAYS={{ apache_app_db_backup_keep_days | int }}
+MIN_BYTES={{ apache_app_db_backup_min_bytes | int }}
+
+STAMP=$(date +%Y%m%d-%H%M%S)
+FILE="{{ apache_app_name }}-db-$STAMP.sql.gz"
+
+fail() { echo "$(date -Is) backup $STAMP FAILED: $*" >&2; exit 1; }
+
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
+
+# One backup at a time (cron and a manual run could overlap)
+exec 9>"$BACKUP_DIR/.lock"
+flock -n 9 || fail "another backup is already running"
+
+docker inspect -f '{{ '{{' }}.State.Running{{ '}}' }}' "$CONTAINER" 2>/dev/null | grep -qx true \
+  || fail "container $CONTAINER is not running"
+
+# Written to a temporary name and renamed when complete, so a failed or
+# partial dump is never mistaken for a good one
+umask 077
+docker exec "$CONTAINER" sh -c \
+  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump -uroot --single-transaction --quick --routines --triggers --no-tablespaces --set-gtid-purged=OFF "$MYSQL_DATABASE"' \
+  | gzip > "$BACKUP_DIR/.$FILE.partial" \
+  || { rm -f "$BACKUP_DIR/.$FILE.partial"; fail "mysqldump failed"; }
+
+gzip -t "$BACKUP_DIR/.$FILE.partial" || fail "dump is not valid gzip"
+size=$(stat -c %s "$BACKUP_DIR/.$FILE.partial")
+if [ "$size" -lt "$MIN_BYTES" ]; then
+  mv "$BACKUP_DIR/.$FILE.partial" "$BACKUP_DIR/$FILE.too-small"
+  fail "$FILE is $size bytes, below the $MIN_BYTES byte minimum"
+fi
+mv "$BACKUP_DIR/.$FILE.partial" "$BACKUP_DIR/$FILE"
+
+find "$BACKUP_DIR" -maxdepth 1 -name '{{ apache_app_name }}-db-*.sql.gz*' -mtime +"$KEEP_DAYS" -delete
+
+echo "$(date -Is) backup OK stamp=$STAMP file=$FILE bytes=$size"

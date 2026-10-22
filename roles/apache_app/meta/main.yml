@@ -1,0 +1,26 @@
+galaxy_info:
+  author: Paul Blacknell
+  description: A PHP/Apache application in Docker Compose serving one or more vhosts, with an optional private MySQL database, imports and backups
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - apache
+    - php
+    - mysql
+    - docker
+    - compose
+
+dependencies: []

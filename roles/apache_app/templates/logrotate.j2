@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+{{ apache_app_dir }}/logs/apache/*.log
+{% for f in apache_app_log_files %}
+{{ apache_app_dir }}/logs/{{ f | basename }}
+{% endfor %}
+{
+    daily
+    rotate {{ apache_app_logrotate_rotate }}
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    # The app's own log files are bind-mounted as single files, so they must
+    # be truncated in place rather than replaced by a new file
+    copytruncate
+    postrotate
+        docker exec {{ __apache_app_web }} apache2ctl graceful >/dev/null 2>&1 || true
+    endscript
+}
+{% if apache_app_db | bool and apache_app_db_backup | bool %}
+
+{{ apache_app_db_backup_log }} {
+    monthly
+    rotate 6
+    missingok
+    notifempty
+    compress
+}
+{% endif %}
