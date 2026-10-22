@@ -1,0 +1,53 @@
+---
+- name: Start with an empty site list
+  ansible.builtin.set_fact:
+    __nginx_proxy_sites: []
+    __nginx_proxy_reload_needed: false
+
+- name: Apply site defaults
+  ansible.builtin.set_fact:
+    __nginx_proxy_sites: >-
+      {{ __nginx_proxy_sites
+         + [__nginx_proxy_site_defaults | combine({'domains': [item.name]}, item)] }}
+  loop: "{{ nginx_proxy_sites }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Check site names are unique and safe as filenames
+  ansible.builtin.assert:
+    that:
+      - (__nginx_proxy_sites | map(attribute='name') | unique | length) == (__nginx_proxy_sites | length)
+      - __nginx_proxy_sites | map(attribute='name') | reject('match', '^[A-Za-z0-9][A-Za-z0-9._-]*$') | list | length == 0
+      - __nginx_proxy_sites | map(attribute='name') | select('in', [__nginx_proxy_default_site, 'default']) | list | length == 0
+    fail_msg: >-
+      nginx_proxy_sites names must be unique, made of letters, digits, dots,
+      dashes or underscores, and not {{ __nginx_proxy_default_site }} or default.
+    quiet: true
+
+# Keeps proxy_pass passing the request URI through unchanged
+- name: Check each upstream is scheme://host:port with no path
+  ansible.builtin.assert:
+    that: item.upstream is match('^https?://[^/\s]+$')
+    fail_msg: "{{ item.name }}: upstream {{ item.upstream }} must be scheme://host:port with no path or trailing slash."
+    quiet: true
+  loop: "{{ __nginx_proxy_sites }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Check no domain is claimed by two sites
+  ansible.builtin.assert:
+    that: (__domains | unique | length) == (__domains | length)
+    fail_msg: "A domain appears in more than one present site. Domains: {{ __domains | sort | join(', ') }}"
+    quiet: true
+  vars:
+    __domains: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') | map(attribute='domains') | flatten }}"
+
+# For geerlingguy.certbot: certbot_certs: "{{ nginx_proxy_certbot_certs }}"
+- name: Build the certbot certificate list
+  ansible.builtin.set_fact:
+    nginx_proxy_certbot_certs: >-
+      {%- set ns = namespace(out=[]) -%}
+      {%- for s in __nginx_proxy_sites if s.state == 'present' and s.issue -%}
+      {%-   set ns.out = ns.out + [{'name': s.name, 'domains': s.domains, 'webroot': nginx_proxy_acme_root}] -%}
+      {%- endfor -%}
+      {{ ns.out }}

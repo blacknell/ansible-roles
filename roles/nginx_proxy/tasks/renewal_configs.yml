@@ -1,0 +1,41 @@
+---
+# Renewal reads each certificate's renewal/<name>.conf. One copied from
+# another host may name a different webroot, authenticator or installer, so
+# point every managed one at the ACME folder used here.
+- name: Find the renewal config of each certificate
+  ansible.builtin.stat:
+    path: "{{ nginx_proxy_letsencrypt_dir }}/renewal/{{ item.name }}.conf"
+  loop: >-
+    {{ __nginx_proxy_sites | selectattr('state', 'eq', 'present')
+       | selectattr('name', 'in', __nginx_proxy_certs | dict2items | selectattr('value.present') | map(attribute='key'))
+       | list }}
+  loop_control:
+    label: "{{ item.name }}"
+  register: __nginx_proxy_renewal_confs
+  become: true
+
+- name: Point renewal configs at the shared ACME folder
+  ansible.builtin.replace:
+    path: "{{ item.0.stat.path }}"
+    regexp: "{{ item.1.regexp }}"
+    replace: "{{ item.1.replace }}"
+  loop: >-
+    {{ __nginx_proxy_renewal_confs.results | selectattr('stat.exists')
+       | product(__rules) | list }}
+  loop_control:
+    label: "{{ item.0.item.name }}: {{ item.1.what }}"
+  vars:
+    __rules:
+      - what: authenticator
+        regexp: '^authenticator = (?!webroot$).*$'
+        replace: authenticator = webroot
+      - what: installer
+        regexp: '^installer = (?!None$).*$'
+        replace: installer = None
+      - what: webroot_path
+        regexp: '^webroot_path = (?!{{ nginx_proxy_acme_root }},$).*$'
+        replace: webroot_path = {{ nginx_proxy_acme_root }},
+      - what: webroot_map
+        regexp: '^((?:[A-Za-z0-9*-]+\.)+[A-Za-z0-9-]+) = (?!{{ nginx_proxy_acme_root }}$).*$'
+        replace: '\1 = {{ nginx_proxy_acme_root }}'
+  become: true

@@ -1,0 +1,84 @@
+---
+argument_specs:
+  main:
+    short_description: Install nginx, shared config and the vhosts; sets nginx_proxy_certbot_certs
+    options: &all_options
+      nginx_proxy_sites:
+        type: list
+        elements: dict
+        default: []
+        description: One entry per vhost and certificate.
+        options:
+          name:
+            type: str
+            required: true
+            description: Vhost filename and certificate name.
+          upstream:
+            type: str
+            required: true
+            description: scheme://host:port to proxy to, with no path.
+          domains:
+            type: list
+            elements: str
+            description: Names on the certificate and vhost. Defaults to [name].
+          state:
+            type: str
+            choices: [present, absent]
+            default: present
+            description: absent removes the vhost; the certificate is kept.
+          issue:
+            type: bool
+            default: true
+            description: Include the site in nginx_proxy_certbot_certs.
+          client_max_body_size:
+            type: str
+            default: 1m
+            description: nginx client_max_body_size for the HTTPS server.
+          proxy_buffering:
+            type: bool
+            default: true
+            description: nginx proxy_buffering for the HTTPS server.
+          extra_server_config:
+            type: str
+            default: ""
+            description: Raw nginx lines added to the HTTPS server block.
+          extra_location_config:
+            type: str
+            default: ""
+            description: Raw nginx lines added to the HTTPS "location /" block.
+      nginx_proxy_package_state:
+        type: str
+        choices: [present, latest]
+        default: present
+        description: State of the nginx package.
+      nginx_proxy_acme_root:
+        type: path
+        default: /var/www/letsencrypt
+        description: ACME challenge folder served on port 80 for every name; certbot's webroot.
+      nginx_proxy_letsencrypt_dir:
+        type: path
+        default: /etc/letsencrypt
+        description: certbot's config folder.
+      nginx_proxy_ipv6:
+        type: bool
+        description: Also listen on IPv6. Defaults to whether the host has an IPv6 address.
+      nginx_proxy_remove_default_site:
+        type: bool
+        default: true
+        description: Remove the distro's default site.
+      nginx_proxy_renewal_hook:
+        type: bool
+        default: true
+        description: Install a certbot deploy hook that reloads nginx after a renewal.
+      nginx_proxy_fix_renewal_configs:
+        type: bool
+        default: true
+        description: Point each managed certificate's renewal config at nginx_proxy_acme_root.
+      nginx_proxy_expiry_warn_days:
+        type: int
+        default: 14
+        description: Warn about certificates with fewer days left than this.
+
+  vhosts:
+    short_description: Write the vhosts again (e.g. after certbot issued certificates), test and reload nginx
+    options: *all_options

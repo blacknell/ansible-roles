@@ -1,0 +1,8 @@
+---
+# Writes the vhosts again, e.g. after certbot has issued certificates, then
+# tests and reloads nginx. Installs nothing.
+- name: Check and normalise the site list
+  ansible.builtin.import_tasks: sites.yml
+
+- name: Write the vhosts, test and reload
+  ansible.builtin.import_tasks: render.yml

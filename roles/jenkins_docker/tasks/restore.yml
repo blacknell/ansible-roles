@@ -1,0 +1,130 @@
+---
+# Restores a jenkins-home-<stamp>.tar.gz (made by this role's backup script)
+# into jenkins_docker_volume. Jenkins is stopped while the volume is written
+# and started again afterwards if the compose project exists.
+# Refuses to overwrite a volume that already has data unless
+# jenkins_docker_restore_force is true.
+- name: Check a restore file was given
+  ansible.builtin.assert:
+    that: jenkins_docker_restore_file | length > 0
+    fail_msg: >-
+      Set jenkins_docker_restore_file to the jenkins-home-<stamp>.tar.gz to
+      restore, e.g. -e jenkins_docker_restore_file=/path/jenkins-home-20261021-031502.tar.gz
+    quiet: true
+
+- name: Check the restore file exists on the host
+  ansible.builtin.stat:
+    path: "{{ jenkins_docker_restore_file }}"
+  register: __jenkins_docker_restore_stat
+  become: true
+
+- name: Verify the restore file is a sensible size
+  ansible.builtin.assert:
+    that:
+      - __jenkins_docker_restore_stat.stat.exists
+      - __jenkins_docker_restore_stat.stat.isreg
+      - __jenkins_docker_restore_stat.stat.size >= (jenkins_docker_backup_min_home_bytes | int)
+    fail_msg: >-
+      {{ jenkins_docker_restore_file }} is missing, not a file, or smaller than
+      jenkins_docker_backup_min_home_bytes ({{ jenkins_docker_backup_min_home_bytes }}).
+    success_msg: >-
+      {{ jenkins_docker_restore_file | basename }}:
+      {{ __jenkins_docker_restore_stat.stat.size | default(0) | human_readable }}
+  become: true
+
+# Reads the whole archive, so a truncated or corrupt copy fails here,
+# before anything is stopped or deleted.
+- name: Check the tarball reads cleanly and has config.xml at its root
+  ansible.builtin.command:
+    argv: [tar, -tzf, "{{ jenkins_docker_restore_file }}", ./config.xml]
+  changed_when: false
+  become: true
+
+- name: Check whether the compose project exists
+  ansible.builtin.stat:
+    path: "{{ jenkins_docker_compose_dir }}/docker-compose.yml"
+  register: __jenkins_docker_restore_compose
+  become: true
+
+# Labelled as compose would, so a later install doesn't warn that the
+# volume "was not created by Docker Compose"
+- name: Create the volume if it's missing
+  community.docker.docker_volume:
+    name: "{{ jenkins_docker_volume }}"
+    labels:
+      com.docker.compose.project: "{{ jenkins_docker_compose_project }}"
+      com.docker.compose.volume: jenkins-data
+  become: true
+
+- name: Check whether the volume already has data
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - -v
+      - "{{ jenkins_docker_volume }}:/data:ro"
+      - "{{ jenkins_docker_backup_image }}"
+      - sh
+      - -c
+      - ls -A /data | head -n 1
+  register: __jenkins_docker_restore_existing
+  changed_when: false
+  become: true
+
+- name: Refuse to overwrite a volume with data in it
+  ansible.builtin.assert:
+    that: >-
+      __jenkins_docker_restore_existing.stdout | length == 0
+      or jenkins_docker_restore_force | bool
+    fail_msg: >-
+      Volume {{ jenkins_docker_volume }} already has data. Set
+      jenkins_docker_restore_force=true to empty it and restore over it.
+    quiet: true
+
+- name: Report what a real run would do (check mode only)
+  ansible.builtin.debug:
+    msg: >-
+      Check mode: would stop Jenkins, restore {{ jenkins_docker_restore_file }}
+      into volume {{ jenkins_docker_volume }} and start Jenkins again
+  when: ansible_check_mode
+
+- name: Stop Jenkins
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_docker_compose_dir }}"
+    state: stopped
+  become: true
+  when: __jenkins_docker_restore_compose.stat.exists
+
+# Runs as root in a throwaway container, so file owners and modes in the
+# tarball are kept as they were on the old host.
+- name: Restore the tarball into the volume
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - -v
+      - "{{ jenkins_docker_volume }}:/data"
+      - -v
+      - "{{ jenkins_docker_restore_file | dirname }}:/restore:ro"
+      - "{{ jenkins_docker_backup_image }}"
+      - sh
+      - -c
+      - >-
+        set -e;
+        find /data -mindepth 1 -delete;
+        tar xzpf "/restore/$1" -C /data --numeric-owner;
+        test -f /data/config.xml
+      - sh
+      - "{{ jenkins_docker_restore_file | basename }}"
+  changed_when: true
+  become: true
+  when: not ansible_check_mode
+
+- name: Start Jenkins
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_docker_compose_dir }}"
+    state: present
+  become: true
+  when: __jenkins_docker_restore_compose.stat.exists

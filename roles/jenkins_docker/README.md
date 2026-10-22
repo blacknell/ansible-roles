@@ -59,7 +59,7 @@ volume's current name (`docker volume ls`), or Jenkins starts with an empty home
 | `jenkins_docker_apt_packages` | `[]` | Extra Debian packages installed into the image |
 | `jenkins_docker_container_name` | `jenkins` | Container name |
 | `jenkins_docker_container_user` | `""` | User the container runs as (`""` = the image's `jenkins` user) |
-| `jenkins_docker_ports` | `["8080:8080", "50000:50000"]` | Published ports |
+| `jenkins_docker_ports` | `["8080:8080", "50000:50000"]` | Published ports. Behind a reverse proxy on the same host, publish on loopback only, e.g. `["127.0.0.1:8080:8080"]` |
 | `jenkins_docker_environment` | `{}` | Extra environment variables |
 | `jenkins_docker_restart_policy` | `unless-stopped` | Compose restart policy |
 | `jenkins_docker_docker_socket` | `false` | Mount `/var/run/docker.sock` so builds can run `docker` |
@@ -85,6 +85,13 @@ volume's current name (`docker volume ls`), or Jenkins starts with an empty home
 | `jenkins_docker_backup_config` | `true` | Also tar the compose folder |
 | `jenkins_docker_backup_config_excludes` | `[.git]` | Paths relative to the compose folder left out of the config tarball |
 
+### Restore
+
+| Variable | Default | Description |
+|---|---|---|
+| `jenkins_docker_restore_file` | `""` | A `jenkins-home-<stamp>.tar.gz` on the host to restore |
+| `jenkins_docker_restore_force` | `false` | Empty and restore over a volume that already has data |
+
 If the backup folder is inside the compose folder, it's left out of the config tarball and
 the image build context automatically.
 
@@ -98,9 +105,22 @@ them, run `backup_install` again; `backup_now` uses the installed script as it i
 | `install` | `install` | Compose folder, `docker-compose.yml`, `Dockerfile`, `plugins.txt`, `casc/`; builds the image when they change and starts Jenkins |
 | `backup_install` | `backup_install` | Backup folder, log file, script and cron entry |
 | `backup_now` | `backup_now` | Checks the backup install, runs a backup as `jenkins_docker_user` and verifies the tarballs. Installs nothing. |
+| `restore` | `restore` | Checks `jenkins_docker_restore_file` reads cleanly and has `config.xml`, stops Jenkins, restores it into `jenkins_docker_volume` (keeping file owners), and starts Jenkins again if the compose project exists |
 
-`main` runs `install` then `backup_install`. `backup_now` only runs when asked for
-(`--tags backup_now` or `tasks_from: backup_now`).
+`main` runs `install` then `backup_install`. `backup_now` and `restore` only run when asked
+for (`--tags backup_now` / `--tags restore`, or `tasks_from`).
+
+### Moving Jenkins to another host
+
+1. On the old host, take a backup (`--tags backup_now`) and stop Jenkins.
+2. Copy the `jenkins-home-<stamp>.tar.gz` to the new host.
+3. On the new host, restore it, then install:
+   ```bash
+   ansible-playbook -i inventory jenkins.yml --tags restore -e jenkins_docker_restore_file=/path/jenkins-home-<stamp>.tar.gz
+   ansible-playbook -i inventory jenkins.yml
+   ```
+   Restoring before the first install means Jenkins never starts with an empty home.
+   Keep `jenkins_docker_image` the same as the old host for the move; upgrade afterwards.
 
 Tasks that act as `jenkins_docker_user` only use `become` when the play isn't already
 connected as that user, so `backup_now` needs no sudo when you connect as that user.
@@ -144,6 +164,8 @@ Then reference it by its fully-qualified name:
 ansible-playbook -i inventory jenkins.yml                         # install + backups
 ansible-playbook -i inventory jenkins.yml --tags install          # Jenkins only
 ansible-playbook -i inventory jenkins.yml --tags backup_now       # back up now
+ansible-playbook -i inventory jenkins.yml --tags restore \
+  -e jenkins_docker_restore_file=/srv/jenkins/backups/jenkins-home-20261021-031502.tar.gz
 ```
 
 Add `-K` if sudo on the host asks for a password.

@@ -1,0 +1,20 @@
+---
+- name: Test nginx_proxy role
+  hosts: localhost
+  vars:
+    nginx_proxy_sites:
+      - name: ci.example.com
+        upstream: http://127.0.0.1:8080
+        client_max_body_size: 100m
+        proxy_buffering: false
+      - name: www.example.com
+        domains: [www.example.com, example.com]
+        upstream: http://127.0.0.1:8101
+        issue: false
+  roles:
+    - nginx_proxy
+  tasks:
+    - name: Switch newly certified sites to HTTPS
+      ansible.builtin.include_role:
+        name: nginx_proxy
+        tasks_from: vhosts

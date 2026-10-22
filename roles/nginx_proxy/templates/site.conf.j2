@@ -1,0 +1,65 @@
+# {{ ansible_managed }}
+{% set site = __nginx_proxy_site %}
+{% set has_cert = __nginx_proxy_certs[site.name].present %}
+# {{ site.name }} -> {{ site.upstream }}
+# Certificate: {{ 'present' if has_cert else 'none yet, so HTTP and ACME only' }}
+
+server {
+    listen 80;
+{% if nginx_proxy_ipv6 | bool %}
+    listen [::]:80;
+{% endif %}
+    server_name {{ site.domains | join(' ') }};
+
+    access_log /var/log/nginx/{{ site.name }}.access.log;
+    error_log /var/log/nginx/{{ site.name }}.error.log;
+
+    location /.well-known/acme-challenge/ {
+        root {{ nginx_proxy_acme_root }};
+    }
+
+    location / {
+{% if has_cert %}
+        return 301 https://$host$request_uri;
+{% else %}
+        return 503;
+{% endif %}
+    }
+}
+{% if has_cert %}
+
+{% set h2 = '' if __nginx_proxy_http2_directive else ' http2' %}
+server {
+    listen 443 ssl{{ h2 }};
+{% if nginx_proxy_ipv6 | bool %}
+    listen [::]:443 ssl{{ h2 }};
+{% endif %}
+{% if __nginx_proxy_http2_directive %}
+    http2 on;
+{% endif %}
+    server_name {{ site.domains | join(' ') }};
+
+    ssl_certificate {{ nginx_proxy_letsencrypt_dir }}/live/{{ site.name }}/fullchain.pem;
+    ssl_certificate_key {{ nginx_proxy_letsencrypt_dir }}/live/{{ site.name }}/privkey.pem;
+    include /etc/nginx/snippets/nginx-proxy-ssl.conf;
+
+    access_log /var/log/nginx/{{ site.name }}.access.log;
+    error_log /var/log/nginx/{{ site.name }}.error.log;
+
+    client_max_body_size {{ site.client_max_body_size }};
+{% if site.extra_server_config | length > 0 %}
+    {{ site.extra_server_config | trim | indent(4) }}
+{% endif %}
+
+    location / {
+        proxy_pass {{ site.upstream }};
+        include /etc/nginx/snippets/nginx-proxy-headers.conf;
+{% if not site.proxy_buffering %}
+        proxy_buffering off;
+{% endif %}
+{% if site.extra_location_config | length > 0 %}
+        {{ site.extra_location_config | trim | indent(8) }}
+{% endif %}
+    }
+}
+{% endif %}

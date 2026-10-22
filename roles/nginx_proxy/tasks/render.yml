@@ -1,0 +1,100 @@
+---
+- name: Read the existing certificates
+  ansible.builtin.import_tasks: certs_inspect.yml
+
+# "http2 on;" needs nginx 1.25.1+; older versions take "listen ... http2"
+- name: Read the nginx version
+  ansible.builtin.command:
+    argv: [nginx, -v]
+  register: __nginx_proxy_nginx_v
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: true
+
+- name: Choose how to turn on HTTP/2
+  ansible.builtin.set_fact:
+    __nginx_proxy_http2_directive: >-
+      {{ (__nginx_proxy_nginx_v.stderr | default('') | regex_search('nginx/([0-9.]+)', '\1') | default(['99'], true) | first)
+         is version('1.25.1', '>=') }}
+
+- name: Write a vhost for each present site
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/{{ __nginx_proxy_site.name }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    loop_var: __nginx_proxy_site
+    label: "{{ __nginx_proxy_site.name }}"
+  become: true
+  register: __nginx_proxy_vhosts
+
+- name: Enable each present site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item.name }}.conf
+    dest: /etc/nginx/sites-enabled/{{ item.name }}.conf
+    state: link
+  loop: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: true
+  register: __nginx_proxy_links
+
+- name: Remove each absent site
+  ansible.builtin.file:
+    path: /etc/nginx/{{ item.0 }}/{{ item.1.name }}.conf
+    state: absent
+  loop: "{{ ['sites-enabled', 'sites-available'] | product(__nginx_proxy_sites | selectattr('state', 'eq', 'absent')) | list }}"
+  loop_control:
+    label: "{{ item.0 }}/{{ item.1.name }}.conf"
+  become: true
+  register: __nginx_proxy_removed
+
+- name: Note whether nginx needs a reload
+  ansible.builtin.set_fact:
+    __nginx_proxy_reload_needed: >-
+      {{ __nginx_proxy_reload_needed
+         or __nginx_proxy_vhosts is changed
+         or __nginx_proxy_links is changed
+         or __nginx_proxy_removed is changed }}
+
+- name: Point renewal configs at the ACME folder
+  ansible.builtin.import_tasks: renewal_configs.yml
+  when: nginx_proxy_fix_renewal_configs | bool
+
+# nginx -t first: a bad config fails the play here and the running nginx
+# keeps its current config.
+- name: Test the nginx config
+  ansible.builtin.command:
+    argv: [nginx, -t, -q]
+  changed_when: false
+  become: true
+  when: not ansible_check_mode
+
+- name: Reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  become: true
+  when: __nginx_proxy_reload_needed | bool
+
+- name: Clear the reload flag
+  ansible.builtin.set_fact:
+    __nginx_proxy_reload_needed: false
+
+- name: Report each site
+  ansible.builtin.debug:
+    msg: >-
+      {{ ('HTTP only: no certificate yet' ~ ('' if item.issue else ' (issue: false)')) if not __c.present
+         else ('HTTPS -> ' ~ item.upstream ~ ', certificate valid ' ~ __c.days ~ ' days (until ' ~ __c.end ~ ')' ~ __notes) }}
+  vars:
+    __c: "{{ __nginx_proxy_certs[item.name] }}"
+    __notes: >-
+      {{ (' [STAGING]' if __c.staging else '')
+         ~ (' WARNING: renewal may be failing' if __c.days < nginx_proxy_expiry_warn_days else '') }}
+  loop: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') }}"
+  loop_control:
+    label: "{{ item.name }}"

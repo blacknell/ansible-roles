@@ -1,0 +1,92 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: "{{ nginx_proxy_package_state }}"
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Create the ACME challenge folder
+  ansible.builtin.file:
+    path: "{{ nginx_proxy_acme_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Remove the distro's default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  when: nginx_proxy_remove_default_site | bool
+  register: __nginx_proxy_distro_default
+
+- name: Write the shared config
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: nginx-proxy.conf.j2, dest: /etc/nginx/conf.d/nginx-proxy.conf }
+    - { src: ssl.conf.j2, dest: /etc/nginx/snippets/nginx-proxy-ssl.conf }
+    - { src: proxy.conf.j2, dest: /etc/nginx/snippets/nginx-proxy-headers.conf }
+    - { src: default-site.conf.j2, dest: "/etc/nginx/sites-available/{{ __nginx_proxy_default_site }}.conf" }
+  loop_control:
+    label: "{{ item.dest }}"
+  become: true
+  register: __nginx_proxy_shared_conf
+
+- name: Enable the catch-all site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ __nginx_proxy_default_site }}.conf
+    dest: /etc/nginx/sites-enabled/{{ __nginx_proxy_default_site }}.conf
+    state: link
+  become: true
+  register: __nginx_proxy_default_link
+
+- name: Create certbot's deploy hook folder
+  ansible.builtin.file:
+    path: "{{ nginx_proxy_letsencrypt_dir }}/renewal-hooks/deploy"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  when: nginx_proxy_renewal_hook | bool
+
+- name: Install the reload-on-renewal hook
+  ansible.builtin.template:
+    src: reload-hook.sh.j2
+    dest: "{{ nginx_proxy_letsencrypt_dir }}/renewal-hooks/deploy/nginx-proxy-reload"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  when: nginx_proxy_renewal_hook | bool
+
+- name: Remove the reload-on-renewal hook
+  ansible.builtin.file:
+    path: "{{ nginx_proxy_letsencrypt_dir }}/renewal-hooks/deploy/nginx-proxy-reload"
+    state: absent
+  become: true
+  when: not nginx_proxy_renewal_hook | bool
+
+- name: Start nginx and enable it at boot
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+  become: true
+
+- name: Note whether nginx needs a reload
+  ansible.builtin.set_fact:
+    __nginx_proxy_reload_needed: >-
+      {{ __nginx_proxy_reload_needed
+         or __nginx_proxy_distro_default is changed
+         or __nginx_proxy_shared_conf is changed
+         or __nginx_proxy_default_link is changed }}
