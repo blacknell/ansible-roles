@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+# http-level settings for the nginx_proxy vhosts.
+
+# Websocket upgrade when the client asks for it; otherwise an empty
+# Connection header, so upstream keepalive works.
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      '';
+}

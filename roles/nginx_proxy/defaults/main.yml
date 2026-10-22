@@ -1,0 +1,40 @@
+---
+# nginx from the distro package, proxying to services on this host (for
+# example containers publishing on 127.0.0.1). Certificates come from
+# certbot (e.g. geerlingguy.certbot, fed from nginx_proxy_certbot_certs);
+# this role only checks whether each site's certificate exists.
+
+# One entry per vhost and certificate:
+#   - name: ci.example.com              vhost filename and certificate name (required)
+#     upstream: http://127.0.0.1:8080   scheme://host:port, no path (required)
+#     domains: [ci.example.com]         names on the cert and vhost (default: [name])
+#     state: present                    absent removes the vhost (the cert is kept)
+#     issue: true                       include in nginx_proxy_certbot_certs
+#     client_max_body_size: 1m
+#     proxy_buffering: true
+#     extra_server_config: ""           raw nginx lines for the HTTPS server block
+#     extra_location_config: ""         raw nginx lines for its "location /" block
+nginx_proxy_sites: []
+
+nginx_proxy_package_state: present
+
+# Shared ACME challenge folder, served on port 80 for every name. Use the same
+# path as certbot's webroot (geerlingguy.certbot: certbot_webroot).
+nginx_proxy_acme_root: /var/www/letsencrypt
+nginx_proxy_letsencrypt_dir: /etc/letsencrypt
+
+# Also listen on IPv6
+nginx_proxy_ipv6: "{{ ansible_facts['all_ipv6_addresses'] | default([]) | length > 0 }}"
+
+# Remove the distro's default site, which would otherwise answer for every name
+nginx_proxy_remove_default_site: true
+
+# Install a certbot deploy hook that reloads nginx after a certificate renews
+nginx_proxy_renewal_hook: true
+
+# Point each managed certificate's renewal config at nginx_proxy_acme_root, so a
+# certificate copied from another host renews here
+nginx_proxy_fix_renewal_configs: true
+
+# Report a warning for certificates with fewer days left than this
+nginx_proxy_expiry_warn_days: 14

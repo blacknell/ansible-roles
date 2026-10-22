@@ -1,0 +1,25 @@
+galaxy_info:
+  author: Paul Blacknell
+  description: nginx reverse proxy on the host, with vhosts that switch to HTTPS once their Let's Encrypt certificate exists
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+
+  galaxy_tags:
+    - nginx
+    - proxy
+    - letsencrypt
+    - certbot
+
+dependencies: []

@@ -65,6 +65,14 @@ argument_specs:
         type: str
         default: ""
         description: Folder on the Ansible controller whose files are copied into casc/.
+      jenkins_docker_restore_file:
+        type: str
+        default: ""
+        description: jenkins-home-<stamp>.tar.gz on the host to restore (restore entry point only).
+      jenkins_docker_restore_force:
+        type: bool
+        default: false
+        description: Empty and restore over a volume that already has data.
       jenkins_docker_backup_dir:
         type: path
         description: Folder the backup tarballs are written to. Defaults to <compose_dir>/backups.
@@ -138,4 +146,8 @@ argument_specs:
 
   backup_now:
     short_description: Run the installed backup now and verify the tarballs
+    options: *all_options
+
+  restore:
+    short_description: Restore JENKINS_HOME from a backup tarball into the volume
     options: *all_options

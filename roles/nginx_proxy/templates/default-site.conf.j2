@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+# Catch-all for names with no vhost here. ACME challenges are answered for
+# every name, so a certificate can be requested before its vhost exists.
+server {
+    listen 80 default_server;
+{% if nginx_proxy_ipv6 | bool %}
+    listen [::]:80 default_server;
+{% endif %}
+    server_name _;
+
+    location /.well-known/acme-challenge/ {
+        root {{ nginx_proxy_acme_root }};
+    }
+
+    location / {
+        return 444;
+    }
+}
+
+# No certificate needed: TLS handshakes for unknown names (and for sites
+# that don't have a certificate yet) are refused.
+server {
+    listen 443 ssl default_server;
+{% if nginx_proxy_ipv6 | bool %}
+    listen [::]:443 ssl default_server;
+{% endif %}
+    server_name _;
+    ssl_reject_handshake on;
+}

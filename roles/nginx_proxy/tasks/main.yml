@@ -1,0 +1,21 @@
+---
+# Installs nginx and writes the vhosts. A site's HTTPS server is only written
+# once its certificate exists, so run certbot after this role, then the
+# vhosts entry point to switch newly certified sites to HTTPS:
+#
+#   roles:
+#     - blacknell.ansible_roles.nginx_proxy      # sets nginx_proxy_certbot_certs
+#     - geerlingguy.certbot                      # certbot_certs: "{{ nginx_proxy_certbot_certs }}"
+#   tasks:
+#     - ansible.builtin.include_role:
+#         name: blacknell.ansible_roles.nginx_proxy
+#         tasks_from: vhosts
+
+- name: Check and normalise the site list
+  ansible.builtin.import_tasks: sites.yml
+
+- name: Install nginx and the shared config
+  ansible.builtin.import_tasks: install.yml
+
+- name: Write the vhosts, test and reload
+  ansible.builtin.import_tasks: render.yml

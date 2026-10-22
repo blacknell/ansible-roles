@@ -1,0 +1,12 @@
+---
+# Applied to every entry in nginx_proxy_sites (domains defaults to [name])
+__nginx_proxy_site_defaults:
+  state: present
+  issue: true
+  client_max_body_size: 1m
+  proxy_buffering: true
+  extra_server_config: ""
+  extra_location_config: ""
+
+# Our own file names under /etc/nginx; site names can't use these
+__nginx_proxy_default_site: 00-default
