@@ -17,9 +17,13 @@
       - __apache_app_vhosts | map(attribute='docroot') | reject('match', '^[A-Za-z0-9][A-Za-z0-9._-]*$') | list | length == 0
       - apache_app_name is match('^[a-z0-9][a-z0-9_-]*$')
       - apache_app_port | int >= 1 and apache_app_port | int <= 65535
+      - apache_app_php_extensions | reject('match', '^[A-Za-z0-9_]+(@[A-Za-z0-9._^-]+)?$') | list | length == 0
+      - apache_app_wp_cli_version is match('^[0-9]+\\.[0-9]+\\.[0-9]+$')
     fail_msg: >-
       Need at least one vhost, unique server names, docroots of letters, digits,
-      dots, dashes or underscores, a lower-case apache_app_name and a valid port.
+      dots, dashes or underscores, a lower-case apache_app_name, a valid port,
+      extension names of letters, digits or underscores (optionally @version),
+      and a WP-CLI version like 2.12.0.
     quiet: true
   tags: [always]
 

@@ -39,6 +39,24 @@ apache_app_env: {}
 apache_app_log_files: []
 apache_app_restart_policy: unless-stopped
 
+# Mount html/ read-write and make each docroot owned by the container's
+# www-data (uid 33), for apps that write to their own files, e.g. WordPress
+# media uploads and self-updates. Off: html/ is read-only in the container
+# and the docroots belong to apache_app_user.
+apache_app_html_writable: false
+
+# Build extensions with mlocati's install-php-extensions instead of
+# docker-php-ext-install. It installs the Debian packages and configure options
+# each extension needs (gd with JPEG/WebP/FreeType, imagick, intl, zip, ...),
+# and handles PECL extensions, so apache_app_apt_packages is rarely needed.
+apache_app_php_extension_installer: false
+apache_app_php_extension_installer_image: mlocati/php-extension-installer:2
+
+# Install WP-CLI as /usr/local/bin/wp, e.g.
+#   docker exec -u www-data <name>-web wp --path=/var/www/sites/<docroot> core version
+apache_app_wp_cli: false
+apache_app_wp_cli_version: 2.12.0
+
 # --- Database -----------------------------------------------------------------
 
 # A MySQL container on a network only the web container can reach.

@@ -7,8 +7,22 @@
     mode: "0755"
   loop: >-
     {{ ['', 'web', 'apache', 'apache/sites', 'html']
-       + (__apache_app_vhosts | map(attribute='docroot') | map('regex_replace', '^', 'html/') | list) }}
+       + ([] if apache_app_html_writable | bool
+          else (__apache_app_vhosts | map(attribute='docroot') | map('regex_replace', '^', 'html/') | list)) }}
   become: true
+
+# Only the docroot folders themselves: files copied in later need their own
+# chown -R to the same uid
+- name: Create the docroots owned by the container's www-data
+  ansible.builtin.file:
+    path: "{{ apache_app_dir }}/html/{{ item }}"
+    state: directory
+    owner: "{{ __apache_app_www_uid }}"
+    group: "{{ __apache_app_www_uid }}"
+    mode: "0755"
+  loop: "{{ __apache_app_vhosts | map(attribute='docroot') | list }}"
+  become: true
+  when: apache_app_html_writable | bool
 
 # Apache writes these as root inside the container
 - name: Create the log folders

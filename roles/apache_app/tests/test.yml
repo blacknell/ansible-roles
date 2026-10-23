@@ -25,3 +25,23 @@
         grants: ["SELECT ON example.settings"]
   roles:
     - apache_app
+
+- name: Test apache_app role for a WordPress site
+  hosts: localhost
+  vars:
+    apache_app_name: blog
+    apache_app_user: www-data
+    apache_app_dir: /srv/sites/blog
+    apache_app_port: 8111
+    apache_app_php_image: php:7.4-apache
+    apache_app_html_writable: true
+    apache_app_php_extension_installer: true
+    apache_app_php_extensions: [mysqli, gd, imagick, exif, intl, zip, opcache]
+    apache_app_wp_cli: true
+    apache_app_vhosts:
+      - server_name: blog.example.com
+    apache_app_db: true
+    apache_app_db_password: example-password
+    apache_app_db_root_password: example-root-password
+  roles:
+    - apache_app
