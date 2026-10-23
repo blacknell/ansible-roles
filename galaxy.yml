@@ -1,6 +1,6 @@
 namespace: blacknell
 name: ansible_roles
-version: 1.12.1
+version: 1.13.0
 readme: README.md
 authors:
   - Paul Blacknell
