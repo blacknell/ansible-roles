@@ -17,7 +17,7 @@
     argv: [openssl, passwd, "-6", -salt, "{{ (item.0.name ~ ':' ~ item.1.name) | hash('sha256') | truncate(16, true, '', 0) }}", -stdin]
     stdin: "{{ item.1.password }}"
   loop: >-
-    {{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') | selectattr('auth', 'defined')
+    {{ nginx_proxy_sites | selectattr('name', 'in', __nginx_proxy_auth_sites | map(attribute='name') | list)
        | subelements('auth.users', skip_missing=true) }}
   loop_control:
     label: "{{ item.0.name }}: {{ item.1.name }}"
@@ -35,6 +35,7 @@
     owner: root
     group: www-data
     mode: "0640"
+  diff: false # the hashes stay out of --diff output
   vars:
     __r: "{{ __nginx_proxy_auth_hashes.results | selectattr('item.0.name', 'eq', item.name) | list }}"
     __nl: "\n"

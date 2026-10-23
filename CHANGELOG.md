@@ -2,6 +2,14 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Fixed
+
+- nginx_proxy: basic-auth passwords no longer appear in the output when a task fails. A failed loop item is printed in full, and the site list every task loops over carried the passwords; it now holds only user names, and the passwords are read only by `no_log` tasks. The htpasswd file is also left out of `--diff` output
+- nginx_proxy: `--check` no longer fails at "Enable each present site" for a site added in the same run, whose vhost check mode doesn't write
+- apache_app: `--check` on a new app no longer fails at "Build and start the containers"; the compose step is skipped until the project exists (#17)
+
 ## 1.13.0
 
 ### Added

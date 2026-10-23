@@ -4,14 +4,28 @@
     __nginx_proxy_sites: []
     __nginx_proxy_reload_needed: false
 
+# Basic-auth passwords are left out of __nginx_proxy_sites: every later task
+# loops over it, and a failed loop item is printed in full. Only auth.yml's
+# no_log tasks read passwords, from nginx_proxy_sites.
 - name: Apply site defaults
   ansible.builtin.set_fact:
     __nginx_proxy_sites: >-
       {{ __nginx_proxy_sites
-         + [__nginx_proxy_site_defaults | combine({'domains': [item.name]}, item)] }}
+         + [__nginx_proxy_site_defaults | combine({'domains': [item.name]}, item, __no_passwords)] }}
+  vars:
+    __user_names: >-
+      {%- set ns = namespace(users=[]) -%}
+      {%- for u in (item.auth.users | default([]) if item.auth is defined and item.auth is mapping else []) -%}
+      {%-   set ns.users = ns.users + [{'name': u.name | default('') if u is mapping else ''}] -%}
+      {%- endfor -%}
+      {{ ns.users }}
+    __no_passwords: >-
+      {{ {'auth': item.auth | combine({'users': __user_names})}
+         if item.auth is defined and item.auth is mapping else {} }}
   loop: "{{ nginx_proxy_sites }}"
   loop_control:
     label: "{{ item.name }}"
+  no_log: "{{ item.auth is defined }}"
 
 - name: Check site names are unique and safe as filenames
   ansible.builtin.assert:
@@ -46,13 +60,12 @@
       - item.auth is mapping
       - (__users | length > 0) or (__allow | length > 0)
       - __users | map(attribute='name', default='') | reject('match', '^[^:\\s]+$') | list | length == 0
-      - __users | map(attribute='password', default='') | map('string') | reject('match', '^[^\\n]+$') | list | length == 0
       - (__users | map(attribute='name') | unique | length) == (__users | length)
       - __allow | map('string') | reject('match', '^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$') | list | length == 0
     fail_msg: >-
       {{ item.name }}: auth only goes on upstream sites, and needs users (each with a
-      unique name without spaces or colons and a one-line password) or allow
-      (IP addresses or CIDR ranges), or both.
+      unique name without spaces or colons) or allow (IP addresses or CIDR ranges),
+      or both.
     quiet: true
   vars:
     __users: "{{ item.auth.users | default([]) }}"
@@ -60,6 +73,17 @@
   loop: "{{ __nginx_proxy_sites | selectattr('auth', 'defined') }}"
   loop_control:
     label: "{{ item.name }}"
+
+# Reads the passwords, so no_log; a failure names only the site and user
+- name: Check each basic-auth user has a one-line password
+  ansible.builtin.assert:
+    that: (item.1.password | default('') | string) is match('^[^\\n]+$')
+    fail_msg: "{{ item.0.name }}: user {{ item.1.name | default('?') }} needs a password on one line."
+    quiet: true
+  loop: "{{ nginx_proxy_sites | selectattr('auth', 'defined') | subelements('auth.users', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.0.name }}: {{ item.1.name | default('?') }}"
+  no_log: true
 
 - name: Check no domain is claimed by two sites
   ansible.builtin.assert:

@@ -97,6 +97,14 @@
     mode: "0644"
   become: true
 
+# In check mode nothing above is written, so on a new app there's no project
+# for compose to read yet
+- name: Check whether the compose project exists yet
+  ansible.builtin.stat:
+    path: "{{ apache_app_dir }}/docker-compose.yml"
+  become: true
+  register: __apache_app_compose_file
+
 # Rebuilds the image only when its build files changed; compose recreates a
 # container when its image, env files or settings change.
 - name: Build and start the containers
@@ -108,6 +116,7 @@
     wait_timeout: 300
   become: true
   register: __apache_app_up
+  when: not ansible_check_mode or __apache_app_compose_file.stat.exists
 
 # vhosts and app.conf are bind-mounted, so a changed file needs a graceful
 # restart unless the container was just (re)created anyway
