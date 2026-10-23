@@ -40,6 +40,8 @@
     src: /etc/nginx/sites-available/{{ item.name }}.conf
     dest: /etc/nginx/sites-enabled/{{ item.name }}.conf
     state: link
+    # In check mode a new site's vhost isn't written, so its source is missing
+    force: "{{ ansible_check_mode }}"
   loop: "{{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') }}"
   loop_control:
     label: "{{ item.name }}"
