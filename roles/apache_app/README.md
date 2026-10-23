@@ -11,7 +11,8 @@ Built for moving sites off an old host where several related sites (say `www`, `
   `nginx_proxy`) that sends every site's name to that port. Apache picks the vhost from the
   `Host` header.
 - **Sites**: each vhost has its own document root under `html/`, logs, and optional
-  `SetEnv` values. `.htaccess` files work (`AllowOverride All`).
+  `SetEnv` values. `.htaccess` files work (`AllowOverride All`). The document roots are
+  read-only in the container unless `apache_app_html_writable` is on (see WordPress below).
 - **Database** (`apache_app_db: true`): a MySQL container on an internal network with no
   route out and no published port. The app connects to host `db`. Users and grants are
   applied on every run, so password changes take effect.
@@ -71,13 +72,18 @@ The first vhost Apache sees is a built-in default that returns 404 for unknown n
 | Variable | Default | Description |
 |---|---|---|
 | `apache_app_php_image` | `php:8.3-apache` | Base image |
-| `apache_app_php_extensions` | `[]` | Built in with `docker-php-ext-install`, e.g. `[pdo_mysql, mysqli]` |
-| `apache_app_apt_packages` | `[]` | Debian packages some extensions need to build |
+| `apache_app_php_extensions` | `[]` | Built in with `docker-php-ext-install`, e.g. `[pdo_mysql, mysqli]`, or with `install-php-extensions` (below) |
+| `apache_app_php_extension_installer` | `false` | Build the extensions with mlocati's [`install-php-extensions`](https://github.com/mlocati/docker-php-extension-installer), which adds the build packages and configure options each one needs (`gd` with JPEG/WebP/FreeType, `intl`, `zip`) and installs PECL ones (`imagick`) |
+| `apache_app_php_extension_installer_image` | `mlocati/php-extension-installer:2` | Image the script is copied from |
+| `apache_app_apt_packages` | `[]` | Debian packages some extensions need to build (rarely needed with the installer) |
 | `apache_app_apache_modules` | `[rewrite, headers]` | Modules to enable; `remoteip` is always added |
 | `apache_app_php_ini` | `{expose_php: "Off"}` | Settings on top of `php.ini-production` |
 | `apache_app_env` | `{}` | Environment for the web container (all sites), in a 0600 env file. Values can't contain `'` or a newline |
 | `apache_app_log_files` | `[]` | Log files the app writes inside the container, e.g. `[/var/log/myapp.log]`, bind-mounted from `logs/` |
 | `apache_app_restart_policy` | `unless-stopped` | Compose restart policy |
+| `apache_app_html_writable` | `false` | Mount `html/` read-write and make each docroot folder owned by the container's `www-data` (uid 33) instead of `apache_app_user`. Files copied in need `chown -R 33:33` |
+| `apache_app_wp_cli` | `false` | Install WP-CLI as `/usr/local/bin/wp` |
+| `apache_app_wp_cli_version` | `2.12.0` | WP-CLI release |
 
 ### Database
 
@@ -125,6 +131,42 @@ ansible-playbook -i inventory myapp.yml --tags db_import -e apache_app_db_import
 Copy the site files into `html/<docroot>/` (or deploy them), add the names to your reverse
 proxy pointing at `http://127.0.0.1:<apache_app_port>`, test with `curl --resolve`, then move
 DNS.
+
+## WordPress
+
+WordPress writes to its own files (media uploads, plugin, theme and core updates), needs `gd`
+with JPEG support, and is easiest to manage with WP-CLI:
+
+```yaml
+apache_app_php_image: php:7.4-apache          # or php:8.4-apache once the site supports it
+apache_app_html_writable: true
+apache_app_php_extension_installer: true
+apache_app_php_extensions: [mysqli, gd, imagick, exif, intl, zip, opcache]
+apache_app_wp_cli: true
+apache_app_php_ini:
+  expose_php: "Off"
+  upload_max_filesize: 128M
+  post_max_size: 128M
+  memory_limit: 256M
+apache_app_vhosts:
+  - server_name: blog.example.com
+    extra_config: |
+      <Directory /var/www/sites/blog.example.com/wp-content/uploads>
+          <FilesMatch "\.(php|phtml|phar)$">
+              Require all denied
+          </FilesMatch>
+      </Directory>
+```
+
+Set `DB_HOST` to `db` in `wp-config.php`. `HTTPS=on` comes from the proxy's
+`X-Forwarded-Proto`, so WordPress doesn't loop redirecting to HTTPS. Run WP-CLI as `www-data`
+so files it writes stay writable by Apache:
+
+```bash
+docker exec -u www-data <name>-web wp --path=/var/www/sites/<docroot> core verify-checksums
+```
+
+The images have no `sendmail`; send mail with an SMTP plugin.
 
 ## Example Playbook
 

@@ -15,6 +15,10 @@
 #     proxy_buffering: true
 #     extra_server_config: ""           raw nginx lines for the HTTPS server block
 #     extra_location_config: ""         raw nginx lines for its "location /" block
+#     auth:                             hide the site behind basic auth (upstream sites only)
+#       realm: Restricted
+#       users: [{name: paul, password: "..."}]   written to /etc/nginx/htpasswd/<name>
+#       allow: [172.16.0.0/12, 203.0.113.7]      let these in without a password
 nginx_proxy_sites: []
 
 nginx_proxy_package_state: present

@@ -1,0 +1,20 @@
+---
+# Runs after the reload, so nginx never points at a password file that has
+# already gone (e.g. when a site's auth is removed to open it up).
+- name: Find the basic-auth password files
+  ansible.builtin.find:
+    paths: "{{ __nginx_proxy_htpasswd_dir }}"
+    file_type: file
+  become: true
+  register: __nginx_proxy_auth_found
+
+- name: Remove password files no site uses
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: >-
+    {{ __nginx_proxy_auth_found.files | map(attribute='path')
+       | reject('in', __nginx_proxy_auth_sites | map(attribute='name')
+                      | map('regex_replace', '^', __nginx_proxy_htpasswd_dir ~ '/') | list)
+       | list }}
+  become: true

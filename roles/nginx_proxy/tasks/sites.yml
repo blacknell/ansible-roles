@@ -39,6 +39,28 @@
   loop_control:
     label: "{{ item.name }}"
 
+- name: Check each site's basic auth
+  ansible.builtin.assert:
+    that:
+      - item.redirect_to is not defined
+      - item.auth is mapping
+      - (__users | length > 0) or (__allow | length > 0)
+      - __users | map(attribute='name', default='') | reject('match', '^[^:\\s]+$') | list | length == 0
+      - __users | map(attribute='password', default='') | map('string') | reject('match', '^[^\\n]+$') | list | length == 0
+      - (__users | map(attribute='name') | unique | length) == (__users | length)
+      - __allow | map('string') | reject('match', '^[0-9A-Fa-f:.]+(/[0-9]{1,3})?$') | list | length == 0
+    fail_msg: >-
+      {{ item.name }}: auth only goes on upstream sites, and needs users (each with a
+      unique name without spaces or colons and a one-line password) or allow
+      (IP addresses or CIDR ranges), or both.
+    quiet: true
+  vars:
+    __users: "{{ item.auth.users | default([]) }}"
+    __allow: "{{ item.auth.allow | default([]) }}"
+  loop: "{{ __nginx_proxy_sites | selectattr('auth', 'defined') }}"
+  loop_control:
+    label: "{{ item.name }}"
+
 - name: Check no domain is claimed by two sites
   ansible.builtin.assert:
     that: (__domains | unique | length) == (__domains | length)
@@ -56,3 +78,9 @@
       {%-   set ns.out = ns.out + [{'name': s.name, 'domains': s.domains, 'webroot': nginx_proxy_acme_root}] -%}
       {%- endfor -%}
       {{ ns.out }}
+
+- name: List the sites with basic-auth users
+  ansible.builtin.set_fact:
+    __nginx_proxy_auth_sites: >-
+      {{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') | selectattr('auth', 'defined')
+         | selectattr('auth.users', 'defined') | rejectattr('auth.users', 'eq', []) | list }}

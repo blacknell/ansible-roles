@@ -49,6 +49,20 @@ server {
     error_log /var/log/nginx/{{ site.name }}.error.log;
 
     client_max_body_size {{ site.client_max_body_size }};
+{% if site.auth is defined %}
+
+    # Restricted to {{ ((['the allowed addresses'] if site.auth.allow | default([]) | length > 0 else [])
+                         + (['a password'] if site.auth.users | default([]) | length > 0 else [])) | join(' or ') }}
+    satisfy any;
+{% for a in site.auth.allow | default([]) %}
+    allow {{ a }};
+{% endfor %}
+    deny all;
+{% if site.auth.users | default([]) | length > 0 %}
+    auth_basic {{ site.auth.realm | default('Restricted') | to_json }};
+    auth_basic_user_file {{ __nginx_proxy_htpasswd_dir }}/{{ site.name }};
+{% endif %}
+{% endif %}
 {% if site.extra_server_config | length > 0 %}
     {{ site.extra_server_config | trim | indent(4) }}
 {% endif %}
@@ -59,6 +73,11 @@ server {
 {% else %}
         proxy_pass {{ site.upstream }};
         include /etc/nginx/snippets/nginx-proxy-headers.conf;
+{% if site.auth.users | default([]) | length > 0 %}
+        # The password is for nginx only; an app that reads Authorization
+        # (e.g. WordPress application passwords) would reject it
+        proxy_set_header Authorization "";
+{% endif %}
 {% if not site.proxy_buffering %}
         proxy_buffering off;
 {% endif %}

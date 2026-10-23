@@ -1,0 +1,49 @@
+---
+# Password files for sites with auth.users, written before the vhosts that
+# name them. SHA-512 crypt hashes from openssl on the host (passlib and
+# Python's crypt module aren't needed), salted per site and user, so a file
+# only changes when a user or password does.
+- name: Create the basic-auth folder
+  ansible.builtin.file:
+    path: "{{ __nginx_proxy_htpasswd_dir }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0750"
+  become: true
+
+- name: Hash the basic-auth passwords
+  ansible.builtin.command:
+    argv: [openssl, passwd, "-6", -salt, "{{ (item.0.name ~ ':' ~ item.1.name) | hash('sha256') | truncate(16, true, '', 0) }}", -stdin]
+    stdin: "{{ item.1.password }}"
+  loop: >-
+    {{ __nginx_proxy_sites | selectattr('state', 'eq', 'present') | selectattr('auth', 'defined')
+       | subelements('auth.users', skip_missing=true) }}
+  loop_control:
+    label: "{{ item.0.name }}: {{ item.1.name }}"
+  register: __nginx_proxy_auth_hashes
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Write the basic-auth password files
+  ansible.builtin.copy:
+    content: >-
+      {{ (__r | map(attribute='item.1.name') | zip(__r | map(attribute='stdout'))
+          | map('join', ':') | join(__nl)) ~ __nl }}
+    dest: "{{ __nginx_proxy_htpasswd_dir }}/{{ item.name }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+  vars:
+    __r: "{{ __nginx_proxy_auth_hashes.results | selectattr('item.0.name', 'eq', item.name) | list }}"
+    __nl: "\n"
+  loop: "{{ __nginx_proxy_auth_sites }}"
+  loop_control:
+    label: "{{ item.name }}"
+  become: true
+  register: __nginx_proxy_auth_files
+
+- name: Note whether nginx needs a reload
+  ansible.builtin.set_fact:
+    __nginx_proxy_reload_needed: "{{ __nginx_proxy_reload_needed or __nginx_proxy_auth_files is changed }}"

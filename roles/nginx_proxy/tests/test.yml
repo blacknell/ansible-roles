@@ -11,6 +11,11 @@
         domains: [www.example.com, example.com]
         upstream: http://127.0.0.1:8101
         issue: false
+        auth:
+          users:
+            - name: tester
+              password: not-a-real-password
+          allow: [172.16.0.0/12, 192.0.2.10]
   roles:
     - nginx_proxy
   tasks:

@@ -7,8 +7,20 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 {% endif %}
 {% if apache_app_php_extensions | length > 0 %}
+{% if apache_app_php_extension_installer | bool %}
+
+COPY --from={{ apache_app_php_extension_installer_image }} /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions {{ apache_app_php_extensions | join(' ') }}
+{% else %}
 
 RUN docker-php-ext-install -j"$(nproc)" {{ apache_app_php_extensions | join(' ') }}
+{% endif %}
+{% endif %}
+{% if apache_app_wp_cli | bool %}
+
+ADD --chmod=0755 https://github.com/wp-cli/wp-cli/releases/download/v{{ apache_app_wp_cli_version }}/wp-cli-{{ apache_app_wp_cli_version }}.phar /usr/local/bin/wp
+# www-data's home (/var/www) isn't writable, so keep WP-CLI's cache in /tmp
+ENV WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
 {% endif %}
 
 RUN a2enmod {{ __apache_app_modules | join(' ') }} \

@@ -11,7 +11,7 @@ services:
     env_file:
       - web.env
     volumes:
-      - ./html:/var/www/sites:ro
+      - ./html:/var/www/sites{{ '' if apache_app_html_writable | bool else ':ro' }}
       - ./apache/app.conf:/etc/apache2/conf-enabled/zz-app.conf:ro
       - ./apache/sites:/etc/apache2/sites-enabled:ro
       - ./logs/apache:/var/log/apache2

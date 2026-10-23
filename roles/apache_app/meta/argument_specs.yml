@@ -81,6 +81,30 @@ argument_specs:
         type: str
         default: unless-stopped
         description: Compose restart policy.
+      apache_app_html_writable:
+        type: bool
+        default: false
+        description: >-
+          Mount html/ read-write and make each docroot owned by the container's www-data (uid 33),
+          for apps that write their own files (e.g. WordPress).
+      apache_app_php_extension_installer:
+        type: bool
+        default: false
+        description: >-
+          Build apache_app_php_extensions with mlocati's install-php-extensions (handles build
+          packages, configure options and PECL) instead of docker-php-ext-install.
+      apache_app_php_extension_installer_image:
+        type: str
+        default: mlocati/php-extension-installer:2
+        description: Image the install-php-extensions script is copied from.
+      apache_app_wp_cli:
+        type: bool
+        default: false
+        description: Install WP-CLI as /usr/local/bin/wp in the web image.
+      apache_app_wp_cli_version:
+        type: str
+        default: 2.12.0
+        description: WP-CLI release to install.
       apache_app_db:
         type: bool
         default: false
