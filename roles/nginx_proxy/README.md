@@ -47,9 +47,37 @@ writes the nginx side and hands certbot its list of certificates.
 | `proxy_buffering` | `true` | For the HTTPS server; `false` for streaming apps such as Jenkins |
 | `extra_server_config` | `""` | Raw nginx lines for the HTTPS server block |
 | `extra_location_config` | `""` | Raw nginx lines for its `location /` block |
+| `auth` | | Hide the site behind basic auth: `users` (`{name, password}`), `allow` (addresses or CIDR ranges let in without a password) and `realm` (default `Restricted`). Upstream sites only. See below |
 
 Every HTTPS site gets websocket upgrade support, HTTP/2, the `X-Forwarded-*` headers and
 the Mozilla "intermediate" TLS settings.
+
+### Basic auth
+
+`auth` puts a site behind a password while it isn't ready for the public, for example during
+an upgrade, and removing the key opens it up again:
+
+```yaml
+- name: blog.example.com
+  upstream: http://127.0.0.1:8111
+  auth:
+    users:
+      - name: paul
+        password: "{{ lookup('ansible.builtin.env', 'BLOG_STAGING_PASSWORD') }}"
+    allow:
+      - 172.16.0.0/12      # containers on this host, e.g. WordPress calling its own URL
+      - 203.0.113.7        # home
+```
+
+- `satisfy any`: an allowed address gets in without a password; anyone else needs one. With
+  only `allow`, everyone else is refused.
+- Passwords are hashed with `openssl passwd -6` on the host into
+  `/etc/nginx/htpasswd/<name>` (`root:www-data`, `0640`); files no site uses are removed after
+  the reload.
+- With users, the `Authorization` header isn't passed to the upstream, so an app that reads it
+  (WordPress application passwords, for one) doesn't reject the nginx login.
+- Only the HTTPS server is restricted. Port 80 serves ACME challenges and redirects, and a
+  site without a certificate yet serves nothing else.
 
 ### Other
 

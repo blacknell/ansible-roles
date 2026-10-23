@@ -18,6 +18,9 @@
       {{ (__nginx_proxy_nginx_v.stderr | default('') | regex_search('nginx/([0-9.]+)', '\1') | default(['99'], true) | first)
          is version('1.25.1', '>=') }}
 
+- name: Write the basic-auth password files
+  ansible.builtin.import_tasks: auth.yml
+
 - name: Write a vhost for each present site
   ansible.builtin.template:
     src: site.conf.j2
@@ -80,6 +83,9 @@
     state: reloaded
   become: true
   when: __nginx_proxy_reload_needed | bool
+
+- name: Remove unused basic-auth password files
+  ansible.builtin.import_tasks: auth_cleanup.yml
 
 - name: Clear the reload flag
   ansible.builtin.set_fact:

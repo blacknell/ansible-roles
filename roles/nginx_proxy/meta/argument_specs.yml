@@ -50,6 +50,36 @@ argument_specs:
             type: str
             default: ""
             description: Raw nginx lines added to the HTTPS "location /" block.
+          auth:
+            type: dict
+            description: >-
+              Hide the site behind HTTP basic auth (upstream sites only). Addresses in allow get in
+              without a password. Remove the key to open the site up again.
+            options:
+              realm:
+                type: str
+                default: Restricted
+                description: Realm shown in the browser's login prompt.
+              users:
+                type: list
+                elements: dict
+                default: []
+                description: Users written to /etc/nginx/htpasswd/<name>.
+                options:
+                  name:
+                    type: str
+                    required: true
+                    description: User name.
+                  password:
+                    type: str
+                    required: true
+                    no_log: true
+                    description: Password (hashed with SHA-512 crypt on the host).
+              allow:
+                type: list
+                elements: str
+                default: []
+                description: IP addresses or CIDR ranges let in without a password.
       nginx_proxy_package_state:
         type: str
         choices: [present, latest]

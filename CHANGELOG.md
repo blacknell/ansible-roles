@@ -2,6 +2,15 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Added
+
+- apache_app: `apache_app_html_writable` mounts `html/` read-write and makes each docroot owned by the container's `www-data` (uid 33), for apps that write their own files such as WordPress. Off by default, so existing apps keep read-only docroots
+- apache_app: `apache_app_php_extension_installer` builds `apache_app_php_extensions` with mlocati's `install-php-extensions`, which adds each extension's build packages and configure options (`gd` with JPEG/WebP/FreeType, `intl`, `zip`) and installs PECL extensions such as `imagick`
+- apache_app: `apache_app_wp_cli` installs WP-CLI (`apache_app_wp_cli_version`, default 2.12.0) as `/usr/local/bin/wp`
+- nginx_proxy: `auth` on a site puts its HTTPS server behind basic auth (`users`, hashed with `openssl passwd -6` into `/etc/nginx/htpasswd/<name>`) with an `allow` list of addresses let in without a password. The `Authorization` header isn't passed upstream, so apps that read it (WordPress application passwords) don't reject the nginx login. Removing the key opens the site up and its password file is removed after the reload
+
 ## 1.12.1
 
 ### Fixed

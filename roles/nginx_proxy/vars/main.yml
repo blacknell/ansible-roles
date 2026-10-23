@@ -8,5 +8,8 @@ __nginx_proxy_site_defaults:
   extra_server_config: ""
   extra_location_config: ""
 
+# Password files for sites with auth.users, one per site, named after it
+__nginx_proxy_htpasswd_dir: /etc/nginx/htpasswd
+
 # Our own file names under /etc/nginx; site names can't use these
 __nginx_proxy_default_site: 00-default
