@@ -18,6 +18,16 @@ services:
 {% for f in apache_app_log_files %}
       - {{ ('./logs/' ~ (f | basename) ~ ':' ~ f) | to_json }}
 {% endfor %}
+{% if apache_app_web_healthcheck | bool %}
+    healthcheck:
+      test: {{ ['CMD', 'curl', '-fsS', '-o', '/dev/null', '-A', __apache_app_healthcheck_agent,
+               '-H', 'Host: ' ~ __apache_app_vhosts[0].server_name,
+               'http://127.0.0.1' ~ apache_app_web_healthcheck_path] | to_json }}
+      interval: {{ apache_app_web_healthcheck_interval | to_json }}
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+{% endif %}
 {% if apache_app_db | bool %}
     networks:
       - default

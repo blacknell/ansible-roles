@@ -17,7 +17,7 @@
 {% endfor %}
     DocumentRoot /var/www/sites/{{ v.docroot }}
     ErrorLog /var/log/apache2/{{ v.server_name }}-error.log
-    CustomLog /var/log/apache2/{{ v.server_name }}-access.log app_combined
+    CustomLog /var/log/apache2/{{ v.server_name }}-access.log app_combined{{ ' env=!apache_app_healthcheck' if apache_app_web_healthcheck | bool else '' }}
 {% for key, value in v.env.items() %}
     SetEnv {{ key }} "{{ value | string | replace('\\', '\\\\') | replace('"', '\\"') }}"
 {% endfor %}

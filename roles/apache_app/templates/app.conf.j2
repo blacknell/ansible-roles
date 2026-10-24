@@ -14,6 +14,11 @@ RemoteIPInternalProxy 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 127.0.0.1
 # TLS ends at the proxy; tell PHP the original request was HTTPS
 SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
 
+{% if apache_app_web_healthcheck | bool %}
+# The container's own health check, left out of the access logs
+SetEnvIf User-Agent "^{{ __apache_app_healthcheck_agent }}$" apache_app_healthcheck
+
+{% endif %}
 # %a is the client address after remoteip (%h would be the proxy)
 LogFormat "%v %a %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" app_combined
 

@@ -82,6 +82,9 @@ The first vhost Apache sees is a built-in default that returns 404 for unknown n
 | `apache_app_log_files` | `[]` | Log files the app writes inside the container, e.g. `[/var/log/myapp.log]`, bind-mounted from `logs/` |
 | `apache_app_restart_policy` | `unless-stopped` | Compose restart policy |
 | `apache_app_html_writable` | `false` | Mount `html/` read-write and make each docroot folder owned by the container's `www-data` (uid 33) instead of `apache_app_user`. Files copied in need `chown -R 33:33` |
+| `apache_app_web_healthcheck` | `false` | Docker health check for the web container: `curl` inside it requests `apache_app_web_healthcheck_path` with the first vhost's name. Any 2xx or 3xx is healthy, so an app that can't reach its database (500) shows unhealthy. The checks are left out of the access logs |
+| `apache_app_web_healthcheck_path` | `/` | Path the health check requests |
+| `apache_app_web_healthcheck_interval` | `30s` | How often it runs |
 | `apache_app_wp_cli` | `false` | Install WP-CLI as `/usr/local/bin/wp` |
 | `apache_app_wp_cli_version` | `2.12.0` | WP-CLI release |
 

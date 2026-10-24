@@ -52,6 +52,15 @@ apache_app_html_writable: false
 apache_app_php_extension_installer: false
 apache_app_php_extension_installer_image: mlocati/php-extension-installer:2
 
+# A Docker health check for the web container: curl inside the container asks
+# Apache for apache_app_web_healthcheck_path on the first vhost's name. Any 2xx
+# or 3xx answer is healthy, so a PHP app that can't reach its database (500)
+# shows as unhealthy. Off: only the database container has a health check.
+# The checks are left out of the access logs.
+apache_app_web_healthcheck: false
+apache_app_web_healthcheck_path: /
+apache_app_web_healthcheck_interval: 30s
+
 # Install WP-CLI as /usr/local/bin/wp, e.g.
 #   docker exec -u www-data <name>-web wp --path=/var/www/sites/<docroot> core version
 apache_app_wp_cli: false

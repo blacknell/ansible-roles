@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Added
+
+- apache_app: `apache_app_web_healthcheck` gives the web container a Docker health check. `curl` inside the container (it's in the official php images) requests `apache_app_web_healthcheck_path` (default `/`) with the first vhost's name; any 2xx or 3xx answer is healthy, so a PHP app that can't reach its database shows as unhealthy, and the playbook's compose step waits for it. The checks are left out of the access logs. Off by default
+
 ## 1.13.1
 
 ### Fixed

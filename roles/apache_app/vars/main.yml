@@ -3,6 +3,8 @@ __apache_app_web: "{{ apache_app_name }}-web"
 __apache_app_db: "{{ apache_app_name }}-db"
 # Apache always gets remoteip, so logs and the app see the real client IP
 __apache_app_modules: "{{ (apache_app_apache_modules + ['remoteip']) | unique }}"
+# User agent of the web health check, so Apache can leave it out of the logs
+__apache_app_healthcheck_agent: apache-app-healthcheck
 # uid/gid of www-data in the official php images
 __apache_app_www_uid: 33
 __apache_app_vhost_defaults:
