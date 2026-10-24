@@ -97,6 +97,20 @@ argument_specs:
         type: str
         default: mlocati/php-extension-installer:2
         description: Image the install-php-extensions script is copied from.
+      apache_app_web_healthcheck:
+        type: bool
+        default: false
+        description: >-
+          Docker health check for the web container: curl inside it asks for
+          apache_app_web_healthcheck_path on the first vhost's name; 2xx or 3xx is healthy.
+      apache_app_web_healthcheck_path:
+        type: str
+        default: /
+        description: Path the health check requests, starting with /.
+      apache_app_web_healthcheck_interval:
+        type: str
+        default: 30s
+        description: How often the health check runs (compose duration, e.g. 30s, 1m).
       apache_app_wp_cli:
         type: bool
         default: false

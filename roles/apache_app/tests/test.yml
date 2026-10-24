@@ -38,6 +38,7 @@
     apache_app_php_extension_installer: true
     apache_app_php_extensions: [mysqli, gd, imagick, exif, intl, zip, opcache]
     apache_app_wp_cli: true
+    apache_app_web_healthcheck: true
     apache_app_vhosts:
       - server_name: blog.example.com
     apache_app_db: true

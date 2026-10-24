@@ -183,10 +183,10 @@ EOF
                 script {
                     if (fileExists('release.version')) {
                         def v = readFile('release.version').trim()
-                        def notes = readFile('release-notes.md').trim()
                         slackSend color: 'good',
                                   channel: '#nomad-website',
-                                  message: "blacknell.ansible_roles *${v}* released: https://github.com/blacknell/ansible-roles/releases/tag/${v}\n${notes}"
+                                  message: "blacknell.ansible_roles *${v}* released: https://github.com/blacknell/ansible-roles/releases/tag/${v}\n" +
+                                           "*IMPORTANT:* install it in every repo that uses it: `ansible-galaxy collection install -r requirements.yml --force`"
                     }
                 }
             }
