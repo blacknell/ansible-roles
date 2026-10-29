@@ -115,8 +115,12 @@ maxretry = 5
 [hass]
 enabled  = {{ fail2ban_hass_jail_enabled | bool | lower }}
 filter   = hass
+{% if fail2ban_hass_logpath | length > 0 %}
 logpath = {{ fail2ban_hass_logpath }}
           /dev/null
+{% else %}
+logpath = /dev/null
+{% endif %}
 maxretry = 1
 findtime  = 24h
 bantime = 1d

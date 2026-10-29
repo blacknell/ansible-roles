@@ -48,9 +48,10 @@ fail2ban_enable_joomla_jails: false
 # recidive jail on fail2ban.log: 4 week all-ports ban for repeat offenders
 fail2ban_enable_repeat_offenders_jail: false
 
-# Home Assistant failed logins
+# Home Assistant failed logins. Set the log path in group_vars/host_vars
+# when enabling it
 fail2ban_hass_jail_enabled: false
-fail2ban_hass_logpath: /var/log/homeassistant/home-assistant.log
+fail2ban_hass_logpath: ""
 
 # Frigate behind an Apache reverse proxy
 fail2ban_frigate_jail_enabled: false

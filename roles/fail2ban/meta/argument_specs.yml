@@ -97,8 +97,8 @@ argument_specs:
         description: Enable the Home Assistant login jail.
       fail2ban_hass_logpath:
         type: str
-        default: /var/log/homeassistant/home-assistant.log
-        description: Home Assistant log the hass jail reads.
+        default: ""
+        description: Home Assistant log the hass jail reads. Required when fail2ban_hass_jail_enabled is true.
       fail2ban_frigate_jail_enabled:
         type: bool
         default: false

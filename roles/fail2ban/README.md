@@ -52,7 +52,7 @@ local bans.
 | `fail2ban_enable_joomla_jails` | `false` | joomla-admin-bruteforce, -confirmed-exploit, -suspected-exploit, -recon-scan, -recon-scan-slow |
 | `fail2ban_enable_repeat_offenders_jail` | `false` | recidive: 4-week all-ports ban for IPs banned twice in 28 days |
 | `fail2ban_hass_jail_enabled` | `false` | Home Assistant failed logins |
-| `fail2ban_hass_logpath` | `/var/log/homeassistant/home-assistant.log` | Home Assistant log |
+| `fail2ban_hass_logpath` | `""` | Home Assistant log; required when `fail2ban_hass_jail_enabled` is true |
 | `fail2ban_frigate_jail_enabled` | `false` | Frigate behind an Apache reverse proxy |
 | `fail2ban_frigate_logpath` | `/var/log/apache*/*access*.log` | Frigate proxy access log |
 | `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients |
