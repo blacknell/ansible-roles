@@ -1,0 +1,14 @@
+---
+fail2ban_packages:
+  - fail2ban
+  - dnsutils
+  - sqlite3
+
+# fail2ban 0.11+ (Debian 11 bullseye or later, or a Debian derivative such as
+# Raspberry Pi OS or Ubuntu)
+fail2ban_supported: >-
+  {{ ansible_facts['os_family'] | default('') == 'Debian'
+     and ansible_facts['distribution_major_version'] | default(0) | int >= 11 }}
+
+# Debian 12+ logs to the journal rather than /var/log files
+fail2ban_use_systemd: "{{ ansible_facts['distribution_major_version'] | default(0) | int >= 12 }}"

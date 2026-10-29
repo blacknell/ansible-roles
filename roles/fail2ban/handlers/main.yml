@@ -1,0 +1,16 @@
+---
+# "msmtp changed" lets a mail role in the same play restart fail2ban, so the
+# X-ARF action picks up the new sendmail config.
+- name: Validate fail2ban config
+  listen: reload fail2ban
+  ansible.builtin.command: fail2ban-client -t
+  register: fail2ban_config_test
+  changed_when: false
+
+- name: Restart fail2ban
+  listen:
+    - reload fail2ban
+    - msmtp changed
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted

@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.15.0
+
+### Added
+
+- fail2ban: new role, moved from the blacknell/ansible repo. fail2ban with nftables bans, an `sshd` jail, and Apache, Joomla, repeat-offender (recidive), Home Assistant and Frigate jails that are each switched on by a variable. Bans can be reported to AbuseIPDB and IPThreat, posted to Slack (webhook per ban, bot for repeat offenders and a cron'd summary) and MQTT, and sent as X-ARF abuse emails; each is only added to the jails when its secret or setting is set. Secrets are read from controller environment variables by default (`op run`), or can be set directly. Ships its own `reload fail2ban` handlers, which validate the config with `fail2ban-client -t` before restarting
+
 ## 1.14.0
 
 ### Added

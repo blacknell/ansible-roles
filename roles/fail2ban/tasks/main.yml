@@ -1,0 +1,13 @@
+---
+# fail2ban 0.11+ is needed, so Debian 11 (bullseye) or later.
+- name: Skip hosts that aren't Debian 11 or later
+  when: not fail2ban_supported
+  ansible.builtin.debug:
+    msg: >-
+      fail2ban role skipped on {{ inventory_hostname }}: needs a Debian-family
+      OS at major version 11 or later, found
+      {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_major_version'] }}
+
+- name: Install and configure fail2ban
+  when: fail2ban_supported
+  ansible.builtin.include_tasks: debian.yml

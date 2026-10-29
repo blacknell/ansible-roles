@@ -1,0 +1,199 @@
+# {{ ansible_managed }}
+{#
+  Reporting actions are only added when their secret/setting is non-empty,
+  so a host without them still gets plain local bans.
+#}
+{% macro jail_actions(abuseipdb_category, ipthreat_flags, ipthreat_system, slack=false, xarf=false) -%}
+action = %(action_)s
+{% if fail2ban_abuseipdb_apikey | length > 0 %}
+         %(action_abuseipdb)s[abuseipdb_apikey="{{ fail2ban_abuseipdb_apikey }}", abuseipdb_category="{{ abuseipdb_category }}"]
+{% endif %}
+{% if fail2ban_ipthreat_apikey | length > 0 %}
+         %(action_ipthreat)s[ipthreat_apikey="{{ fail2ban_ipthreat_apikey }}", ipthreat_flags="{{ ipthreat_flags }}", ipthreat_system="{{ ipthreat_system }}"]
+{% endif %}
+{% if xarf and fail2ban_xarf_sender | length > 0 %}
+         %(action_xarf_report)s[sender="{{ fail2ban_xarf_sender }}", bcc="{{ fail2ban_xarf_sender }}", service="http", port="443"]
+{% endif %}
+{% if slack and fail2ban_slack_webhook_url | length > 0 %}
+         %(action_slack_notify)s[slack_webhook_url="{{ fail2ban_slack_webhook_url }}"]
+{% endif %}
+{{ mqtt_action() }}
+{%- endmacro %}
+{% macro mqtt_action() -%}
+{% if fail2ban_mqtt_enabled | bool and fail2ban_mqtt_password | length > 0 %}
+         %(action_mqtt_notify)s[mqtt_password="{{ fail2ban_mqtt_password }}"]
+{% endif %}
+{%- endmacro %}
+[DEFAULT]
+ignoreip = {{ (fail2ban_ignoreip_base + fail2ban_ignoreip_extra) | join('\n           ') }}
+bantime  = {{ fail2ban_bantime }}
+banaction = {{ fail2ban_banaction }}
+banaction_allports = {{ fail2ban_banaction_allports }}
+backend = {{ 'systemd' if fail2ban_use_systemd | bool else 'auto' }}
+logtarget = {{ 'SYSTEMD-JOURNAL' if fail2ban_use_systemd | bool else 'STDERR' }}
+
+apache_access_logpath = {{ fail2ban_apache_access_logpath }}
+apache_error_logpath  = {{ fail2ban_apache_error_logpath }}
+
+action_abuseipdb = abuseipdb
+action_mqtt_notify = mqtt-notify
+action_slack_notify = slack-notify
+action_slack_chatmsg = slack-chatmsg
+action_xarf_report = xarf-login-attack-custom
+action_ipthreat = ipthreat
+
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = {{ fail2ban_sshd_logpath }}
+maxretry = 2
+findtime = 12h
+mode     = aggressive
+bantime  = 1d
+{{ jail_actions('18,22', '8', 'SSH') | trim }}
+
+[apache]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port     = http,https
+filter   = apache-auth
+backend  = auto
+logpath  = %(apache_error_logpath)s
+maxretry = 5
+bantime = 1d
+{{ jail_actions('18', '8', 'WEB', slack=true) | trim }}
+
+[apache-overflows]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port     = http,https
+filter   = apache-overflows
+backend  = auto
+logpath  = %(apache_error_logpath)s
+bantime = 1d
+{{ jail_actions('18', '8', 'WEB', slack=true) | trim }}
+
+[apache-badbots]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port     = http,https
+filter   = apache-badbots
+backend  = auto
+logpath  = %(apache_error_logpath)s
+bantime = 1d
+{{ jail_actions('18,19', '256', 'WEB', slack=true) | trim }}
+
+[apache-nohome]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port     = http,https
+filter   = apache-nohome
+backend  = auto
+logpath  = %(apache_error_logpath)s
+bantime = 1d
+{{ jail_actions('18', '8', 'WEB', slack=true) | trim }}
+
+[apache-404]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port = http,https
+filter = apache-404
+backend  = auto
+logpath  = %(apache_access_logpath)s
+bantime = 1h
+findtime = 10m
+maxretry = 5
+{{ jail_actions('18', '8', 'WEB', slack=true) | trim }}
+
+[apache-custom]
+enabled = {{ fail2ban_apache_jails_enabled | bool | lower }}
+port = http,https
+filter = apache-custom
+backend  = auto
+logpath  = %(apache_access_logpath)s
+bantime = 1d
+findtime = 30m
+maxretry = 5
+{{ jail_actions('18', '8', 'WEB') | trim }}
+
+[hass]
+enabled  = {{ fail2ban_hass_jail_enabled | bool | lower }}
+filter   = hass
+logpath = {{ fail2ban_hass_logpath }}
+          /dev/null
+maxretry = 1
+findtime  = 24h
+bantime = 1d
+{{ jail_actions('18,21', '8', 'WEBAPP', slack=true) | trim }}
+
+[apache-frigate]
+enabled  = {{ fail2ban_frigate_jail_enabled | bool | lower }}
+filter   = apache-frigate
+logpath = {{ fail2ban_frigate_logpath }}
+maxretry = 5
+findtime  = 24h
+bantime = 1d
+{{ jail_actions('18,21', '8', 'WEBAPP', slack=true) | trim }}
+
+[joomla-admin-bruteforce]
+enabled  = {{ fail2ban_enable_joomla_jails | bool | lower }}
+filter   = joomla-admin-bruteforce
+backend  = auto
+logpath  = %(apache_access_logpath)s
+maxretry = 5
+findtime  = 5m
+bantime = 1h
+{{ jail_actions('21', '8', 'WEBAPP') | trim }}
+
+[joomla-confirmed-exploit]
+enabled  = {{ fail2ban_enable_joomla_jails | bool | lower }}
+filter   = joomla-confirmed-exploit
+backend  = auto
+logpath  = %(apache_access_logpath)s
+maxretry = 1
+findtime  = 10m
+bantime = 7d
+{{ jail_actions('21', '8', 'WEBAPP', xarf=true) | trim }}
+
+[joomla-suspected-exploit]
+enabled  = {{ fail2ban_enable_joomla_jails | bool | lower }}
+filter   = joomla-suspected-exploit
+backend  = auto
+logpath  = %(apache_access_logpath)s
+maxretry = 1
+findtime  = 10m
+bantime = 7d
+{{ jail_actions('21', '8', 'WEBAPP') | trim }}
+
+[joomla-recon-scan]
+enabled  = {{ fail2ban_enable_joomla_jails | bool | lower }}
+filter   = joomla-recon-scan
+backend  = auto
+logpath  = %(apache_access_logpath)s
+maxretry = 8
+findtime  = 2m
+bantime = 2h
+{{ jail_actions('21', '8', 'WEBAPP') | trim }}
+
+[joomla-recon-scan-slow]
+enabled  = {{ fail2ban_enable_joomla_jails | bool | lower }}
+filter   = joomla-recon-scan-slow
+backend  = auto
+logpath  = %(apache_access_logpath)s
+maxretry = 3
+findtime  = 1h
+bantime = 2h
+{{ jail_actions('21', '8', 'WEBAPP') | trim }}
+
+[repeat-offenders]
+enabled  = {{ fail2ban_enable_repeat_offenders_jail | bool | lower }}
+filter    = recidive
+logpath   = /var/log/fail2ban.log
+banaction = %(banaction_allports)s
+bantime   = 4w
+findtime  = 28d
+maxretry  = 2
+action = %(action_)s
+{% if fail2ban_slack_bot_token | length > 0 and fail2ban_slack_channel | length > 0 %}
+         %(action_slack_chatmsg)s[slack_bot_token="{{ fail2ban_slack_bot_token }}", slack_channel="{{ fail2ban_slack_channel }}"]
+{% endif %}
+{% if fail2ban_xarf_sender | length > 0 %}
+         %(action_xarf_report)s[sender="{{ fail2ban_xarf_sender }}", bcc="{{ fail2ban_xarf_sender }}", service="http", port="443"]
+{% endif %}
+{{ mqtt_action() }}

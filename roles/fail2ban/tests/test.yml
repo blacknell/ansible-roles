@@ -1,0 +1,10 @@
+---
+- name: Test fail2ban role
+  hosts: localhost
+  remote_user: root
+  vars:
+    fail2ban_apache_jails_enabled: true
+    fail2ban_ignoreip_extra:
+      - 203.0.113.10
+  roles:
+    - fail2ban
