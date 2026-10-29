@@ -93,7 +93,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [apache_app](roles/apache_app) | A PHP/Apache application in Docker Compose serving one or more vhosts, with an optional private MySQL database, imports and backups |
 | [nginx_proxy](roles/nginx_proxy) | nginx reverse proxy on the host, with vhosts that switch to HTTPS once their Let's Encrypt certificate exists (pairs with geerlingguy.certbot) |
 | [swap](roles/swap) | Adds a swap file and sets vm.swappiness on hosts that set a size (off by default; skips Raspberry Pi OS's dphys-swapfile) |
-| [fail2ban](roles/fail2ban) | fail2ban with nftables bans, SSH/Apache/Joomla/Home Assistant jails switched on per host, and optional AbuseIPDB, IPThreat, Slack, MQTT and X-ARF reporting |
+| [fail2ban](roles/fail2ban) | fail2ban with nftables bans, SSH/Apache/Joomla/Frigate jails switched on per host, and optional AbuseIPDB, IPThreat, Slack, MQTT and X-ARF reporting |
 
 ## License
 

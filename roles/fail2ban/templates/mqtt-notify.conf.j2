@@ -31,7 +31,7 @@ actioncheck =
 #          <time>  unix timestamp of the ban time
 # Values:  CMD
 #
-actionban =  mosquitto_pub -h {{ fail2ban_mqtt_host }} -p {{ fail2ban_mqtt_port }} -u {{ fail2ban_mqtt_user }} -P <mqtt_password> -t "fail2ban/<host_name>/<name>/ban" -m \"<ip>\"
+actionban =  mosquitto_pub -h {{ fail2ban_mqtt_host }}{{ (" -p " ~ fail2ban_mqtt_port) if fail2ban_mqtt_port | string | length > 0 else "" }} -u {{ fail2ban_mqtt_user }} -P <mqtt_password> -t "fail2ban/<host_name>/<name>/ban" -m \"<ip>\"
 
 # Option:  actionunban
 # Notes.:  command executed when unbanning an IP. Take care that the
@@ -41,7 +41,7 @@ actionban =  mosquitto_pub -h {{ fail2ban_mqtt_host }} -p {{ fail2ban_mqtt_port 
 #          <time>  unix timestamp of the ban time
 # Values:  CMD
 #
-actionunban = mosquitto_pub -h {{ fail2ban_mqtt_host }} -p {{ fail2ban_mqtt_port }} -u {{ fail2ban_mqtt_user }} -P <mqtt_password> -t "fail2ban/<host_name>/<name>/unban" -m \"<ip>\"
+actionunban = mosquitto_pub -h {{ fail2ban_mqtt_host }}{{ (" -p " ~ fail2ban_mqtt_port) if fail2ban_mqtt_port | string | length > 0 else "" }} -u {{ fail2ban_mqtt_user }} -P <mqtt_password> -t "fail2ban/<host_name>/<name>/unban" -m \"<ip>\"
 
 [Init]
 # The following are variables that will be evaluated at runtime in bash, thus cannot be used inside of single-quotes

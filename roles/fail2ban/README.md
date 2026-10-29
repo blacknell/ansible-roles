@@ -1,7 +1,7 @@
 # ansible-role-fail2ban
 
 Installs fail2ban on Debian with nftables bans and a set of jails for SSH,
-Apache, Joomla, Home Assistant and Frigate. Bans can be reported to
+Apache, Joomla and Frigate. Bans can be reported to
 AbuseIPDB and IPThreat, posted to Slack and MQTT, and sent as X-ARF abuse
 emails.
 
@@ -51,12 +51,11 @@ local bans.
 | `fail2ban_apache_error_logpath` | `/var/log/apache*/*error*.log` | Error logs for the Apache jails |
 | `fail2ban_enable_joomla_jails` | `false` | joomla-admin-bruteforce, -confirmed-exploit, -suspected-exploit, -recon-scan, -recon-scan-slow |
 | `fail2ban_enable_repeat_offenders_jail` | `false` | recidive: 4-week all-ports ban for IPs banned twice in 28 days |
-| `fail2ban_hass_jail_enabled` | `false` | Home Assistant failed logins |
-| `fail2ban_hass_logpath` | `/var/log/homeassistant/home-assistant.log` | Home Assistant log |
 | `fail2ban_frigate_jail_enabled` | `false` | Frigate behind an Apache reverse proxy |
 | `fail2ban_frigate_logpath` | `/var/log/apache*/*access*.log` | Frigate proxy access log |
 | `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients |
-| `fail2ban_mqtt_host` / `_port` / `_user` | `homeassistant` / `1883` / `mqtt` | MQTT broker |
+| `fail2ban_mqtt_host` / `_user` | `""` | MQTT broker host and user; required when `fail2ban_mqtt_enabled` is true |
+| `fail2ban_mqtt_port` | `""` | MQTT broker port; empty uses mosquitto's default (1883) |
 | `fail2ban_xarf_sender` | `""` | From/Bcc for X-ARF reports (joomla-confirmed-exploit, repeat-offenders). Empty: no reports |
 | `fail2ban_summary_enabled` | `false` | Cron job posting the currently banned counts to Slack with the bot token |
 | `fail2ban_summary_cron_hour` / `_minute` | `*/6` / `0` | Summary schedule |

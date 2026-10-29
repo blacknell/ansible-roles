@@ -48,20 +48,18 @@ fail2ban_enable_joomla_jails: false
 # recidive jail on fail2ban.log: 4 week all-ports ban for repeat offenders
 fail2ban_enable_repeat_offenders_jail: false
 
-# Home Assistant failed logins
-fail2ban_hass_jail_enabled: false
-fail2ban_hass_logpath: /var/log/homeassistant/home-assistant.log
-
 # Frigate behind an Apache reverse proxy
 fail2ban_frigate_jail_enabled: false
 fail2ban_frigate_logpath: /var/log/apache*/*access*.log
 
 # --- Notifications ---------------------------------------------------------
-# Publish bans/unbans to MQTT (installs mosquitto-clients)
+# Publish bans/unbans to MQTT (installs mosquitto-clients). Set the broker
+# host and user in group_vars/host_vars when enabling it; port is optional
+# (empty: mosquitto's default, 1883)
 fail2ban_mqtt_enabled: false
-fail2ban_mqtt_host: homeassistant
-fail2ban_mqtt_port: 1883
-fail2ban_mqtt_user: mqtt
+fail2ban_mqtt_host: ""
+fail2ban_mqtt_port: ""
+fail2ban_mqtt_user: ""
 
 # Sender address for X-ARF abuse reports (joomla-confirmed-exploit and
 # repeat-offenders jails). Needs a working sendmail, e.g. msmtp. Empty: no reports

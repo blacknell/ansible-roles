@@ -112,16 +112,6 @@ findtime = 30m
 maxretry = 5
 {{ jail_actions('18', '8', 'WEB') | trim }}
 
-[hass]
-enabled  = {{ fail2ban_hass_jail_enabled | bool | lower }}
-filter   = hass
-logpath = {{ fail2ban_hass_logpath }}
-          /dev/null
-maxretry = 1
-findtime  = 24h
-bantime = 1d
-{{ jail_actions('18,21', '8', 'WEBAPP', slack=true) | trim }}
-
 [apache-frigate]
 enabled  = {{ fail2ban_frigate_jail_enabled | bool | lower }}
 filter   = apache-frigate
