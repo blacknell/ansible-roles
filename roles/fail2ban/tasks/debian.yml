@@ -5,6 +5,18 @@
     name: "{{ fail2ban_packages }}"
     state: present
 
+- name: Check the MQTT broker is set
+  when: fail2ban_mqtt_enabled | bool
+  ansible.builtin.assert:
+    that:
+      - fail2ban_mqtt_host | length > 0
+      - fail2ban_mqtt_user | length > 0
+    fail_msg: >-
+      fail2ban_mqtt_enabled is true for {{ inventory_hostname }} but
+      fail2ban_mqtt_host or fail2ban_mqtt_user is empty. Set them in
+      group_vars or host_vars.
+    quiet: true
+
 - name: Install mosquitto client
   when: fail2ban_mqtt_enabled | bool
   ansible.builtin.apt:

@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.15.1
+
+### Changed
+
+- fail2ban: `fail2ban_mqtt_host`, `fail2ban_mqtt_port` and `fail2ban_mqtt_user` no longer have site-specific defaults. Hosts with `fail2ban_mqtt_enabled` must set the host and user (the role stops with a message if they're empty); an empty port uses mosquitto's default, 1883
+
 ## 1.15.0
 
 ### Added

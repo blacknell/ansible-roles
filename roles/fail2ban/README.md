@@ -56,7 +56,8 @@ local bans.
 | `fail2ban_frigate_jail_enabled` | `false` | Frigate behind an Apache reverse proxy |
 | `fail2ban_frigate_logpath` | `/var/log/apache*/*access*.log` | Frigate proxy access log |
 | `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients |
-| `fail2ban_mqtt_host` / `_port` / `_user` | `homeassistant` / `1883` / `mqtt` | MQTT broker |
+| `fail2ban_mqtt_host` / `_user` | `""` | MQTT broker host and user; required when `fail2ban_mqtt_enabled` is true |
+| `fail2ban_mqtt_port` | `""` | MQTT broker port; empty uses mosquitto's default (1883) |
 | `fail2ban_xarf_sender` | `""` | From/Bcc for X-ARF reports (joomla-confirmed-exploit, repeat-offenders). Empty: no reports |
 | `fail2ban_summary_enabled` | `false` | Cron job posting the currently banned counts to Slack with the bot token |
 | `fail2ban_summary_cron_hour` / `_minute` | `*/6` / `0` | Summary schedule |

@@ -113,16 +113,16 @@ argument_specs:
         description: Publish ban/unban events to MQTT and install mosquitto-clients.
       fail2ban_mqtt_host:
         type: str
-        default: homeassistant
-        description: MQTT broker host.
+        default: ""
+        description: MQTT broker host. Required when fail2ban_mqtt_enabled is true.
       fail2ban_mqtt_port:
-        type: int
-        default: 1883
-        description: MQTT broker port.
+        type: str
+        default: ""
+        description: MQTT broker port. Empty uses mosquitto's default (1883).
       fail2ban_mqtt_user:
         type: str
-        default: mqtt
-        description: MQTT user.
+        default: ""
+        description: MQTT user. Required when fail2ban_mqtt_enabled is true.
       fail2ban_xarf_sender:
         type: str
         default: ""
