@@ -1,0 +1,36 @@
+#!/bin/bash
+# {{ ansible_managed }}
+#
+# Posts a Fail2Ban "currently banned" summary to Slack via the
+# chat.postMessage API. Intended to run as root via cron -- no sudo
+# needed since cron already runs this as root.
+
+set -euo pipefail
+
+# --- Slack settings (from the fail2ban role) ---
+SLACK_BOT_TOKEN="{{ fail2ban_slack_bot_token }}"
+SLACK_CHANNEL="{{ fail2ban_slack_channel }}"
+
+# --- Build the message ---
+header="[$(hostname)] Right now the following jails have banned hosts"
+table=""
+
+for j in $(fail2ban-client status | grep "Jail list" | sed 's/.*://;s/,//g'); do
+    banned=$(fail2ban-client status "$j" | grep "Currently banned" | grep -oE '[0-9]+')
+    table+=$(printf '  %s %s' "$j" "$banned")$'\n'
+done
+
+# Header stays as normal Slack text; only the table is wrapped in a code
+# block (```) so its padded columns render in monospace and actually
+# line up -- Slack's default proportional font would otherwise misalign
+# printf-style padding.
+summary="${header}"$'\n'"\`\`\`"$'\n'"${table}\`\`\`"
+json_text=${summary//$'\n'/\\n}
+json_text=${json_text//\"/\\\"}
+
+# --- Post to Slack ---
+curl -s -X POST 'https://slack.com/api/chat.postMessage' \
+    -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+    -H 'Content-type: application/json; charset=utf-8' \
+    --data "{\"channel\":\"${SLACK_CHANNEL}\",\"text\":\"${json_text}\"}" \
+    > /dev/null

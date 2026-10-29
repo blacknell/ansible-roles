@@ -1,0 +1,141 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure fail2ban
+    options:
+      fail2ban_abuseipdb_key_env_var:
+        type: str
+        default: ABUSEIPDB_KEY
+        description: Controller env var holding the AbuseIPDB API key.
+      fail2ban_ipthreat_key_env_var:
+        type: str
+        default: IPTHREAT_KEY
+        description: Controller env var holding the IPThreat API key.
+      fail2ban_slack_webhook_env_var:
+        type: str
+        default: FAIL2BAN_SLACK_WEBHOOK
+        description: Controller env var holding the Slack incoming webhook URL for per-ban messages.
+      fail2ban_slack_bot_token_env_var:
+        type: str
+        default: FAIL2BAN_SLACK_BOT_TOKEN
+        description: Controller env var holding the Slack bot token (repeat-offenders jail and summary).
+      fail2ban_slack_channel_env_var:
+        type: str
+        default: FAIL2BAN_SLACK_CHANNEL
+        description: Controller env var holding the Slack channel for the bot.
+      fail2ban_mqtt_password_env_var:
+        type: str
+        default: MQTT_PASSWORD
+        description: Controller env var holding the MQTT password.
+      fail2ban_abuseipdb_apikey:
+        type: str
+        description: AbuseIPDB API key. Defaults to the env var above; empty disables reporting.
+      fail2ban_ipthreat_apikey:
+        type: str
+        description: IPThreat API key. Defaults to the env var above; empty disables reporting.
+      fail2ban_slack_webhook_url:
+        type: str
+        description: Slack webhook URL. Defaults to the env var above; empty disables it.
+      fail2ban_slack_bot_token:
+        type: str
+        description: Slack bot token. Defaults to the env var above.
+      fail2ban_slack_channel:
+        type: str
+        description: Slack channel ID for the bot. Defaults to the env var above.
+      fail2ban_mqtt_password:
+        type: str
+        description: MQTT password. Defaults to the env var above.
+      fail2ban_ignoreip_base:
+        type: list
+        elements: str
+        default: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1/8]
+        description: Addresses never banned.
+      fail2ban_ignoreip_extra:
+        type: list
+        elements: str
+        default: []
+        description: Your own addresses or hostnames, added to fail2ban_ignoreip_base.
+      fail2ban_bantime:
+        type: str
+        default: 7d
+        description: Default ban time.
+      fail2ban_banaction:
+        type: str
+        default: nftables
+        description: Default ban action.
+      fail2ban_banaction_allports:
+        type: str
+        default: nftables[type=allports]
+        description: All-ports ban action (repeat-offenders jail).
+      fail2ban_sshd_logpath:
+        type: str
+        default: /var/log/auth.log
+        description: sshd jail log path.
+      fail2ban_apache_jails_enabled:
+        type: bool
+        default: false
+        description: Enable the apache, apache-overflows, apache-badbots, apache-nohome, apache-404 and apache-custom jails.
+      fail2ban_apache_access_logpath:
+        type: str
+        default: /var/log/apache*/*access*.log
+        description: Access log glob for the Apache and Joomla jails.
+      fail2ban_apache_error_logpath:
+        type: str
+        default: /var/log/apache*/*error*.log
+        description: Error log glob for the Apache jails.
+      fail2ban_enable_joomla_jails:
+        type: bool
+        default: false
+        description: Enable the joomla-* jails.
+      fail2ban_enable_repeat_offenders_jail:
+        type: bool
+        default: false
+        description: Enable the recidive-based repeat-offenders jail.
+      fail2ban_hass_jail_enabled:
+        type: bool
+        default: false
+        description: Enable the Home Assistant login jail.
+      fail2ban_hass_logpath:
+        type: str
+        default: /var/log/homeassistant/home-assistant.log
+        description: Home Assistant log the hass jail reads.
+      fail2ban_frigate_jail_enabled:
+        type: bool
+        default: false
+        description: Enable the apache-frigate jail.
+      fail2ban_frigate_logpath:
+        type: str
+        default: /var/log/apache*/*access*.log
+        description: Log the apache-frigate jail reads.
+      fail2ban_mqtt_enabled:
+        type: bool
+        default: false
+        description: Publish ban/unban events to MQTT and install mosquitto-clients.
+      fail2ban_mqtt_host:
+        type: str
+        default: homeassistant
+        description: MQTT broker host.
+      fail2ban_mqtt_port:
+        type: int
+        default: 1883
+        description: MQTT broker port.
+      fail2ban_mqtt_user:
+        type: str
+        default: mqtt
+        description: MQTT user.
+      fail2ban_xarf_sender:
+        type: str
+        default: ""
+        description: From/Bcc address for X-ARF abuse reports. Empty disables them. Needs a working sendmail.
+      fail2ban_summary_enabled:
+        type: bool
+        default: false
+        description: Install a cron job posting a banned-hosts summary to Slack using the bot token.
+      fail2ban_summary_cron_hour:
+        type: str
+        default: "*/6"
+        description: Cron hour for the summary.
+      fail2ban_summary_cron_minute:
+        type: str
+        default: "0"
+        description: Cron minute for the summary.

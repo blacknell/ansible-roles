@@ -1,0 +1,67 @@
+---
+- name: Install fail2ban and dependencies
+  notify: reload fail2ban
+  ansible.builtin.apt:
+    name: "{{ fail2ban_packages }}"
+    state: present
+
+- name: Install mosquitto client
+  when: fail2ban_mqtt_enabled | bool
+  ansible.builtin.apt:
+    name: mosquitto-clients
+    state: present
+
+- name: Fail2ban configs, filters and actions
+  notify: reload fail2ban
+  ansible.builtin.copy:
+    src: "{{ item }}/"
+    dest: "/etc/fail2ban/{{ item }}/"
+    owner: root
+    group: adm
+    mode: "0640"
+  loop:
+    - fail2ban.d
+    - filter.d
+    - action.d
+
+- name: Fail2ban MQTT action
+  notify: reload fail2ban
+  ansible.builtin.template:
+    src: mqtt-notify.conf.j2
+    dest: /etc/fail2ban/action.d/mqtt-notify.conf
+    owner: root
+    group: adm
+    mode: "0640"
+
+- name: Fail2ban jail.local file
+  notify: reload fail2ban
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: adm
+    mode: "0640"
+
+- name: Fail2ban started and enabled at boot
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Fail2ban summary Slack script
+  ansible.builtin.template:
+    src: fail2ban-summary.sh.j2
+    dest: /usr/local/bin/fail2ban-summary.sh
+    owner: root
+    group: adm
+    mode: "0740"
+  when: fail2ban_summary_enabled | bool
+
+- name: Schedule fail2ban summary update to Slack
+  ansible.builtin.cron:
+    name: "fail2ban summary slack update"
+    hour: "{{ fail2ban_summary_cron_hour }}"
+    minute: "{{ fail2ban_summary_cron_minute }}"
+    job: "/usr/local/bin/fail2ban-summary.sh > /dev/null 2>&1"
+    user: root
+    state: "{{ 'present' if fail2ban_summary_enabled | bool else 'absent' }}"
