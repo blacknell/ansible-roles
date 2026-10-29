@@ -91,14 +91,6 @@ argument_specs:
         type: bool
         default: false
         description: Enable the recidive-based repeat-offenders jail.
-      fail2ban_hass_jail_enabled:
-        type: bool
-        default: false
-        description: Enable the Home Assistant login jail.
-      fail2ban_hass_logpath:
-        type: str
-        default: ""
-        description: Home Assistant log the hass jail reads. Required when fail2ban_hass_jail_enabled is true.
       fail2ban_frigate_jail_enabled:
         type: bool
         default: false

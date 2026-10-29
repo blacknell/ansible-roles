@@ -17,16 +17,6 @@
       group_vars or host_vars.
     quiet: true
 
-- name: Check the Home Assistant log path is set
-  when: fail2ban_hass_jail_enabled | bool
-  ansible.builtin.assert:
-    that:
-      - fail2ban_hass_logpath | length > 0
-    fail_msg: >-
-      fail2ban_hass_jail_enabled is true for {{ inventory_hostname }} but
-      fail2ban_hass_logpath is empty. Set it in group_vars or host_vars.
-    quiet: true
-
 - name: Install mosquitto client
   when: fail2ban_mqtt_enabled | bool
   ansible.builtin.apt:
@@ -45,6 +35,13 @@
     - fail2ban.d
     - filter.d
     - action.d
+
+- name: Remove config the role no longer ships
+  notify: reload fail2ban
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ fail2ban_removed_files }}"
 
 - name: Fail2ban MQTT action
   notify: reload fail2ban

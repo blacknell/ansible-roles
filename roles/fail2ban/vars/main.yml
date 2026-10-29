@@ -12,3 +12,9 @@ fail2ban_supported: >-
 
 # Debian 12+ logs to the journal rather than /var/log files
 fail2ban_use_systemd: "{{ ansible_facts['distribution_major_version'] | default(0) | int >= 12 }}"
+
+# Files earlier versions of this role installed. Removed so fail2ban doesn't
+# keep loading them.
+#   hass.conf: the Home Assistant jail's filter (jail removed in 1.15.1)
+fail2ban_removed_files:
+  - /etc/fail2ban/filter.d/hass.conf

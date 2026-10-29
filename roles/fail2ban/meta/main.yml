@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Paul Blacknell
-  description: Installs fail2ban with nftables bans, SSH/Apache/Joomla/Home Assistant jails and optional AbuseIPDB, IPThreat, Slack, MQTT and X-ARF reporting
+  description: Installs fail2ban with nftables bans, SSH/Apache/Joomla/Frigate jails and optional AbuseIPDB, IPThreat, Slack, MQTT and X-ARF reporting
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 

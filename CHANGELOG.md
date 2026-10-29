@@ -7,7 +7,10 @@ All notable changes to the `blacknell.ansible_roles` collection.
 ### Changed
 
 - fail2ban: `fail2ban_mqtt_host`, `fail2ban_mqtt_port` and `fail2ban_mqtt_user` no longer have site-specific defaults. Hosts with `fail2ban_mqtt_enabled` must set the host and user (the role stops with a message if they're empty); an empty port uses mosquitto's default, 1883
-- fail2ban: `fail2ban_hass_logpath` no longer has a default. Hosts with `fail2ban_hass_jail_enabled` must set it (the role stops with a message if it's empty)
+
+### Removed
+
+- fail2ban: the Home Assistant (`hass`) jail and its filter, along with `fail2ban_hass_jail_enabled` and `fail2ban_hass_logpath`. Home Assistant no longer writes the log file it read. The role removes `/etc/fail2ban/filter.d/hass.conf` from hosts it installed it on
 
 ## 1.15.0
 

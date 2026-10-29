@@ -1,7 +1,7 @@
 # ansible-role-fail2ban
 
 Installs fail2ban on Debian with nftables bans and a set of jails for SSH,
-Apache, Joomla, Home Assistant and Frigate. Bans can be reported to
+Apache, Joomla and Frigate. Bans can be reported to
 AbuseIPDB and IPThreat, posted to Slack and MQTT, and sent as X-ARF abuse
 emails.
 
@@ -51,8 +51,6 @@ local bans.
 | `fail2ban_apache_error_logpath` | `/var/log/apache*/*error*.log` | Error logs for the Apache jails |
 | `fail2ban_enable_joomla_jails` | `false` | joomla-admin-bruteforce, -confirmed-exploit, -suspected-exploit, -recon-scan, -recon-scan-slow |
 | `fail2ban_enable_repeat_offenders_jail` | `false` | recidive: 4-week all-ports ban for IPs banned twice in 28 days |
-| `fail2ban_hass_jail_enabled` | `false` | Home Assistant failed logins |
-| `fail2ban_hass_logpath` | `""` | Home Assistant log; required when `fail2ban_hass_jail_enabled` is true |
 | `fail2ban_frigate_jail_enabled` | `false` | Frigate behind an Apache reverse proxy |
 | `fail2ban_frigate_logpath` | `/var/log/apache*/*access*.log` | Frigate proxy access log |
 | `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients |
