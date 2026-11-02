@@ -296,7 +296,7 @@ logrotate_nomad_options: |
       compress
       delaycompress
       notifempty
-      create 640 www-data adm
+      copytruncate
 
 logrotate_rsyslog_options: |
       rotate 7
