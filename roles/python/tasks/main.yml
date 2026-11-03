@@ -1,19 +1,62 @@
 ---
+# Tagging: every task here is tagged `python`, so `--tags python` selects the
+# whole role whether or not the calling playbook tags it. Nothing is tagged
+# `always` (it would also run under another role's --tags) or `never` (a
+# caller that tags the role `python` would switch it back on). The one-off
+# macOS cleanup is opted into with a variable instead: -e python_cleanup=true
+
+- name: Gather facts if the play didn't
+  when: ansible_facts['os_family'] is not defined
+  ansible.builtin.setup:
+    gather_subset: [min]
+  tags: [python]
+
 - name: Check the platform is supported
   ansible.builtin.assert:
     that:
       - ansible_facts['os_family'] in ['Debian', 'Darwin']
     fail_msg: "python role supports Debian and macOS, not {{ ansible_facts['os_family'] }}"
     quiet: true
-  tags: [always]
+  tags: [python]
 
-# Homebrew refuses to run as root, and under a become: true play user_dir would
-# be root's home. Re-gather facts as ansible_user, as the user role does.
-- name: Re-gather facts as ansible_user (macOS)
+# Quoted so YAML keeps it a string: unquoted 3.10 would become 3.1.
+- name: Check python_macos_version is set (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  ansible.builtin.assert:
+    that:
+      - python_macos_version is string
+      - python_macos_version is match('^3\.\d+$')
+    fail_msg: >-
+      Set python_macos_version to the Homebrew Python to use, as a quoted
+      string such as "3.14", in your playbook or inventory. Got
+      {{ python_macos_version | to_json }}{{
+      ' - without quotes YAML reads it as a number'
+      if python_macos_version is number else '' }}.
+    quiet: true
+  tags: [python]
+
+# --tags python_cleanup was how cleanup used to be run. Stop with a pointer
+# rather than silently doing nothing.
+- name: Point old --tags python_cleanup runs at the variable
+  when: "'python_cleanup' in ansible_run_tags"
+  ansible.builtin.fail:
+    msg: >-
+      --tags python_cleanup is no longer used. Run with
+      --tags python -e python_cleanup=true instead.
+  tags: [python_cleanup]
+
+# Homebrew refuses to run as root, and under a become: true play the gathered
+# user_dir is root's home. Look up ansible_user's home as ansible_user, into a
+# role variable, rather than re-gathering facts: that would change
+# ansible_facts for every role that runs after this one.
+- name: Find ansible_user's home directory (macOS)
   when: ansible_facts['os_family'] == 'Darwin'
   become: false
-  ansible.builtin.setup:
-  tags: [always]
+  ansible.builtin.command: printenv HOME
+  register: python_home_lookup
+  changed_when: false
+  check_mode: false
+  tags: [python]
 
 - name: Install Python (Debian)
   when: ansible_facts['os_family'] == 'Debian'
@@ -25,12 +68,14 @@
   ansible.builtin.import_tasks: darwin.yml
   tags: [python]
 
-- name: Remove pyenv, python.org and unused brew Pythons (macOS)
-  when: ansible_facts['os_family'] == 'Darwin'
+- name: Remove pyenv, python.org and unused brew Pythons (macOS, opt-in)
+  when:
+    - ansible_facts['os_family'] == 'Darwin'
+    - python_cleanup | bool
   ansible.builtin.import_tasks: darwin_cleanup.yml
-  tags: [python_cleanup, never]
+  tags: [python]
 
 - name: Verify and report (macOS)
   when: ansible_facts['os_family'] == 'Darwin'
   ansible.builtin.import_tasks: darwin_verify.yml
-  tags: [python, python_cleanup]
+  tags: [python]

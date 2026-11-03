@@ -6,5 +6,7 @@ python_brew_opt: "{{ python_brew_prefix }}/opt/{{ python_brew_formula }}"
 python_brew_interpreter: "{{ python_brew_opt }}/bin/python{{ python_macos_version }}"
 # Unversioned python/python3/pip/pip3 symlinks that brew ships but doesn't link.
 python_brew_libexec_bin: "{{ python_brew_opt }}/libexec/bin"
-python_zshrc: "{{ ansible_facts['user_dir'] }}/.zshrc"
-python_zprofile: "{{ ansible_facts['user_dir'] }}/.zprofile"
+# ansible_user's home (macOS), looked up without become in tasks/main.yml.
+python_user_home: "{{ python_home_lookup.stdout }}"
+python_zshrc: "{{ python_user_home }}/.zshrc"
+python_zprofile: "{{ python_user_home }}/.zprofile"

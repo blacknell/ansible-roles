@@ -49,9 +49,15 @@
         fail_msg: "Not brew {{ python_brew_formula }}: {{ python_resolved }}"
         success_msg: "python={{ python_resolved.python }} python3={{ python_resolved.python3 }} pip={{ python_resolved.pip }}"
 
+- name: Report project venvs to rebuild
+  when: python_venv_search_paths | length > 0
+  become: false
+  block:
     - name: Find project venvs
       ansible.builtin.find:
-        paths: "{{ python_venv_search_paths }}"
+        paths: >-
+          {{ python_venv_search_paths
+             | map('regex_replace', '^(?:~/)?(?!/)', python_user_home ~ '/') | list }}
         patterns: pyvenv.cfg
         recurse: true
         depth: "{{ python_venv_search_depth }}"
@@ -68,12 +74,14 @@
       failed_when: false
       check_mode: false
 
+    # Anything under the stable opt path is fine: venvs made from
+    # libexec/bin/python record home = <opt>/libexec/bin, not <opt>/bin.
     - name: Report venvs to rebuild on the stable brew path
       ansible.builtin.debug:
         msg:
           base_interpreter: "{{ python_brew_interpreter }}"
           rebuild: >-
             {{ python_venv_homes.results
-               | rejectattr('stdout', 'equalto', 'home = ' ~ python_brew_opt ~ '/bin')
+               | rejectattr('stdout', 'match', '^home = ' ~ (python_brew_opt | regex_escape) ~ '/')
                | map(attribute='item.path')
                | map('dirname') | list }}

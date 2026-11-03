@@ -2,6 +2,24 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.16.0
+
+### Changed
+
+- python: `python_macos_version` has no default and must be set on macOS, as a quoted string such as `"3.14"`. The role stops with a message if it's missing or unquoted (unquoted `3.10` is read as `3.1`). A collection upgrade no longer changes which Python a Mac uses
+- python: the macOS cleanup (remove pyenv, the python.org install and unused brew Pythons) is turned on with `python_cleanup: true` instead of `--tags python_cleanup`. Running with `--tags python_cleanup` now stops with a message saying what to use instead
+- python: `python_venv_search_paths` defaults to `[]`, which skips the venv report (was `~/GitHub`). Relative paths are under the user's home, e.g. `["GitHub"]`
+- python: needs ansible-core 2.16 or later
+
+### Fixed
+
+- python: every task is tagged `python` and none `always` or `never`. `--tags python` runs the role whether or not the playbook tags it, other roles' `--tags` no longer run its setup tasks, and a playbook tagging the role `python` no longer makes `--tags python` run the cleanup
+- python: works in plays with `gather_facts: false`
+- python: no longer re-gathers facts, which changed `ansible_facts` for roles run after it
+- python: venvs built from Homebrew's `libexec/bin/python` are no longer reported as needing a rebuild
+- logrotate: `nomad.log` is rotated with `copytruncate`, so Nomad keeps logging after a rotation
+- The collection build no longer includes the local `.ansible/` and `.idea/` folders
+
 ## 1.15.1
 
 ### Changed
