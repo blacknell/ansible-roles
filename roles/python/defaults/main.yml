@@ -9,8 +9,10 @@ python_debian_packages:
   - python3-apt
 
 # --- macOS ----------------------------------------------------------------
-# The one Homebrew Python that python/python3/pip/pip3 resolve to.
-python_macos_version: "3.14"
+# The one Homebrew Python that python/python3/pip/pip3 resolve to, as a
+# quoted string, e.g. "3.14". Required on macOS: set it in the playbook or
+# inventory. There's no default, so a collection upgrade never changes it.
+python_macos_version: ""
 python_brew_prefix: "{{ '/opt/homebrew' if ansible_facts['architecture'] == 'arm64' else '/usr/local' }}"
 python_update_homebrew: true
 

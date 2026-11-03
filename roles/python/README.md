@@ -6,7 +6,7 @@ its own tasks and anything else fails fast with a clear message.
 | Platform | What it does |
 |----------|--------------|
 | Debian   | Installs `git`, `python3-pip`, `python3-venv`, `python3-debian`, `python3-apt` (and with them the distro `python3`) via apt |
-| macOS    | Installs/upgrades Homebrew `python@3.14` and makes it the one default `python`, `python3`, `pip`, `pip3` |
+| macOS    | Installs/upgrades Homebrew `python@<python_macos_version>` and makes it the one default `python`, `python3`, `pip`, `pip3` |
 
 On Debian packages are installed `present`; keeping them patched is left to normal apt
 upgrades (e.g. the `update_debian` role). On macOS every run does `brew update` and
@@ -24,7 +24,7 @@ Every run:
 - installs/upgrades `python@<python_macos_version>` and removes superseded kegs
 - when `python_manage_shell` is true:
   - strips pyenv init and python.org installer PATH lines from `~/.zshrc` / `~/.zprofile` (backups kept)
-  - adds `<brew prefix>/opt/python@3.14/libexec/bin` to PATH in `~/.zprofile`
+  - adds `<brew prefix>/opt/python@<version>/libexec/bin` to PATH in `~/.zprofile`
   - asserts a new zsh login shell resolves `python`, `python3` and `pip` to brew Python
 - when `python_venv_search_paths` is set, lists project venvs there that aren't built on
   the stable brew path
@@ -55,18 +55,25 @@ nothing on Debian.
 ### Venvs and PyCharm
 
 Build venvs from the stable `opt` path, never `/opt/homebrew/bin/python3` (which resolves
-into a versioned `Cellar` folder that is deleted on the next patch upgrade):
+into a versioned `Cellar` folder that is deleted on the next patch upgrade). For
+`python_macos_version: "3.14"` on Apple silicon:
 
 ```
 /opt/homebrew/opt/python@3.14/bin/python3.14
 ```
+
+### Changing version
+
+Set the new `python_macos_version` and re-run: the new version becomes the default and
+the old one stays installed. Rebuild venvs on the new version, then run the cleanup to
+remove the old one.
 
 ## Role Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `python_debian_packages` | git, python3-venv, python3-pip, python3-debian, python3-apt | apt packages on Debian |
-| `python_macos_version` | `"3.14"` | Homebrew `python@` version to make the default |
+| `python_macos_version` | none, **required on macOS** | Homebrew `python@` version to make the default, as a quoted string, e.g. `"3.14"` |
 | `python_brew_prefix` | `/opt/homebrew` (arm64) or `/usr/local` | Homebrew prefix |
 | `python_update_homebrew` | `true` | Run `brew update` first |
 | `python_manage_shell` | `true` | Edit `~/.zshrc` / `~/.zprofile` |
@@ -94,6 +101,8 @@ into a versioned `Cellar` folder that is deleted on the next patch upgrade):
 
 ```yaml
 - hosts: macs
+  vars:
+    python_macos_version: "3.14"
   roles:
     - blacknell.ansible_roles.python
 

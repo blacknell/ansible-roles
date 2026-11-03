@@ -19,6 +19,22 @@
     quiet: true
   tags: [python]
 
+# Quoted so YAML keeps it a string: unquoted 3.10 would become 3.1.
+- name: Check python_macos_version is set (macOS)
+  when: ansible_facts['os_family'] == 'Darwin'
+  ansible.builtin.assert:
+    that:
+      - python_macos_version is string
+      - python_macos_version is match('^3\.\d+$')
+    fail_msg: >-
+      Set python_macos_version to the Homebrew Python to use, as a quoted
+      string such as "3.14", in your playbook or inventory. Got
+      {{ python_macos_version | to_json }}{{
+      ' - without quotes YAML reads it as a number'
+      if python_macos_version is number else '' }}.
+    quiet: true
+  tags: [python]
+
 # --tags python_cleanup was how cleanup used to be run. Stop with a pointer
 # rather than silently doing nothing.
 - name: Point old --tags python_cleanup runs at the variable
