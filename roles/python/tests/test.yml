@@ -1,6 +1,6 @@
 ---
 - name: Test python role
   hosts: localhost
-  remote_user: root
+  connection: local
   roles:
     - python

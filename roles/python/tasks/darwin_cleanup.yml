@@ -1,5 +1,5 @@
 ---
-# Only runs with --tags python_cleanup. Rebuild project venvs first: any built
+# Only runs with python_cleanup: true. Rebuild project venvs first: any built
 # on pyenv, python.org or a removed brew Python stops working after this.
 #
 # Only the python.org removal needs root. Everything is checked up front so a
@@ -63,7 +63,7 @@
 
     - name: Remove ~/.pyenv
       ansible.builtin.file:
-        path: "{{ ansible_facts['user_dir'] }}/.pyenv"
+        path: "{{ python_user_home }}/.pyenv"
         state: absent
 
 - name: Remove python.org install
