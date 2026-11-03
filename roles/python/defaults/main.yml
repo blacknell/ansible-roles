@@ -9,8 +9,10 @@ python_debian_packages:
   - python3-apt
 
 # --- macOS ----------------------------------------------------------------
-# The one Homebrew Python that python/python3/pip/pip3 resolve to.
-python_macos_version: "3.14"
+# The one Homebrew Python that python/python3/pip/pip3 resolve to, as a
+# quoted string, e.g. "3.14". Required on macOS: set it in the playbook or
+# inventory. There's no default, so a collection upgrade never changes it.
+python_macos_version: ""
 python_brew_prefix: "{{ '/opt/homebrew' if ansible_facts['architecture'] == 'arm64' else '/usr/local' }}"
 python_update_homebrew: true
 
@@ -18,12 +20,16 @@ python_update_homebrew: true
 # brew Python first. Set false for a Mac whose shell you don't want touched.
 python_manage_shell: true
 
-# Where to look for project venvs not built on the stable brew path (report only).
-python_venv_search_paths:
-  - "{{ ansible_facts['user_dir'] }}/GitHub"
+# Folders to search for project venvs not built on the stable brew path
+# (report only). Empty skips the search. Relative paths are relative to
+# ansible_user's home, e.g. ["GitHub", "src"].
+python_venv_search_paths: []
 python_venv_search_depth: 4
 
-# One-off cleanup - only runs with --tags python_cleanup.
+# One-off cleanup on macOS: removes the Pythons this role replaces. Off unless
+# asked for, e.g. -e python_cleanup=true. Rebuild project venvs first.
+python_cleanup: false
+# What the cleanup removes, when it runs.
 python_cleanup_pyenv: true
 python_cleanup_python_org: true      # needs --ask-become-pass
 python_cleanup_unused_brew: true
