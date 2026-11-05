@@ -53,7 +53,7 @@ local bans.
 | `fail2ban_enable_repeat_offenders_jail` | `false` | recidive: 4-week all-ports ban for IPs banned twice in 28 days |
 | `fail2ban_frigate_jail_enabled` | `false` | Frigate behind an Apache reverse proxy |
 | `fail2ban_frigate_logpath` | `/var/log/apache*/*access*.log` | Frigate proxy access log |
-| `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients |
+| `fail2ban_mqtt_enabled` | `false` | Publish bans to `fail2ban/<host>/<jail>/ban` (and `unban`); installs mosquitto-clients and the `mqtt-notify` action, which is removed when false |
 | `fail2ban_mqtt_host` / `_user` | `""` | MQTT broker host and user; required when `fail2ban_mqtt_enabled` is true |
 | `fail2ban_mqtt_port` | `""` | MQTT broker port; empty uses mosquitto's default (1883) |
 | `fail2ban_xarf_sender` | `""` | From/Bcc for X-ARF reports (joomla-confirmed-exploit, repeat-offenders). Empty: no reports |

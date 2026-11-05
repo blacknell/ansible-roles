@@ -7,6 +7,7 @@ All notable changes to the `blacknell.ansible_roles` collection.
 ### Changed
 
 - fail2ban: install bind9-dnsutils so the fail2ban apt task doesn't report changed on Debian 13
+- fail2ban: the MQTT action (`action.d/mqtt-notify.conf`) is only installed when `fail2ban_mqtt_enabled` is true, and removed otherwise. Earlier versions installed it on every host, with an empty broker host and user where MQTT was off
 
 ## 1.16.0
 

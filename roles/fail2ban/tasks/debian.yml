@@ -51,6 +51,15 @@
     owner: root
     group: adm
     mode: "0640"
+  when: fail2ban_mqtt_enabled | bool
+
+# Earlier versions installed it on every host; no jail uses it without MQTT
+- name: Remove the MQTT action where MQTT is off
+  notify: reload fail2ban
+  ansible.builtin.file:
+    path: /etc/fail2ban/action.d/mqtt-notify.conf
+    state: absent
+  when: not (fail2ban_mqtt_enabled | bool)
 
 - name: Fail2ban jail.local file
   notify: reload fail2ban
