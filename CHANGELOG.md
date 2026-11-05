@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## Unreleased
+
+### Changed
+
+- fail2ban: install bind9-dnsutils so the fail2ban apt task doesn't report changed on Debian 13
+
 ## 1.16.0
 
 ### Changed
