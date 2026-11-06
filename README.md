@@ -94,6 +94,8 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 | [nginx_proxy](roles/nginx_proxy) | nginx reverse proxy on the host, with vhosts that switch to HTTPS once their Let's Encrypt certificate exists (pairs with geerlingguy.certbot) |
 | [swap](roles/swap) | Adds a swap file and sets vm.swappiness on hosts that set a size (off by default; skips Raspberry Pi OS's dphys-swapfile) |
 | [fail2ban](roles/fail2ban) | fail2ban with nftables bans, SSH/Apache/Joomla/Frigate jails switched on per host, and optional AbuseIPDB, IPThreat, Slack, MQTT and X-ARF reporting |
+| [msmtp](roles/msmtp) | Installs msmtp as the host's sendmail, relaying mail through an SMTP server |
+| [nftables_blocklist](roles/nftables_blocklist) | Loads FireHOL levels 1-4 and AbuseIPDB's blacklist into separate nftables tables on a cron schedule (off by default) |
 
 ## License
 

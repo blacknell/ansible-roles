@@ -1,0 +1,403 @@
+#!/bin/bash
+# {{ ansible_managed }}
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+#
+# refresh-ip-blocklist.sh.j2 --source {firehol1|firehol2|firehol3|firehol4|abuseipdb}
+#
+# Fetches one external IP reputation list and (re)loads it into its own
+# dedicated nftables table -- kept separate from every other source's
+# table and from Fail2Ban's own f2b-table, so each source's drop counter
+# stays individually meaningful.
+#
+# Update model: table/chain/rule are bootstrapped ONCE per source, on
+# first run. Every later run only flushes and repopulates the set --
+# the chain and its drop rule are never touched again, so counters
+# accumulate across refreshes instead of resetting each time.
+#
+# Freshness (the source's own "generated at" date) goes to the syslog/
+# journal via `logger`, not an nftables comment -- there is no supported
+# way to update a table's comment without deleting and recreating the
+# whole table, which would reset the counter this script exists to
+# preserve. Every source logs under the single tag "refresh-blocklist"
+# (lines prefixed [$SOURCE]) -- `journalctl -t refresh-blocklist` gives
+# a full history across every source in one place, which beats a single
+# overwritten value.
+#
+# Change detection: FireHOL sources send If-None-Match (their CDN
+# supports ETags) and additionally compare a content hash, so a refresh
+# with nothing new skips the reload. AbuseIPDB gets neither -- it's
+# refreshed at most once/day by hand, its conditional-request support
+# isn't documented, and there's nothing worth saving by checking first.
+#
+# The AbuseIPDB API key and each source's MIN_COUNT are templated in by
+# Ansible at deploy time (nftables_blocklist_abuseipdb_api_key, nftables_blocklist_sources) --
+# not read from the environment.
+#
+# nftables tables only live in memory, so a reboot removes them. A source
+# whose table is missing is always fetched and reloaded, even if its ETag
+# or content hash matches the last run.
+#
+# --dry-run: fetches and evaluates exactly as a real run would (same
+# conditional request, same hash comparison, same MIN_COUNT check) but
+# never touches nftables and never writes the ETag/hash state files --
+# so it has zero effect on what the next real run sees. Reports whether
+# a real run would reload, the source's freshness date, and entry count.
+#
+# --skip-modified-checks: forces a fetch and reload even if the source
+# supports conditional requests -- no If-None-Match sent, no hash
+# comparison gating the reload. For sources where USE_CONDITIONAL is
+# already "no" (AbuseIPDB) this is a no-op. Useful for a manual forced
+# refresh (e.g. right after changing MIN_COUNT or other script config,
+# where you want the current content reapplied regardless of whether
+# upstream has changed since the last run).
+
+set -euo pipefail
+
+STATE_DIR="/var/lib/refresh-ip-blocklist"
+CHUNK_SIZE=5000
+
+usage() {
+    echo "Usage: $0 --source {firehol1|firehol2|firehol3|firehol4|abuseipdb} [--dry-run] [--skip-modified-checks]" >&2
+    exit 1
+}
+
+SOURCE=""
+DRY_RUN=no
+SKIP_MODIFIED_CHECKS=no
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --source) SOURCE="${2:-}"; shift 2 ;;
+        --dry-run) DRY_RUN=yes; shift ;;
+        --skip-modified-checks) SKIP_MODIFIED_CHECKS=yes; shift ;;
+        *) usage ;;
+    esac
+done
+[ -n "$SOURCE" ] || usage
+
+# --- Per-source profile ----------------------------------------------------
+# MIN_COUNT       sanity floor -- abort rather than load a suspiciously
+#                 short list (truncated fetch, upstream outage, etc.)
+# USE_CONDITIONAL yes = ETag + content-hash skip-if-unchanged (FireHOL)
+#                 no  = always fetch, always reload (AbuseIPDB)
+# COMMENT_SRC     "body" = date parsed out of the downloaded list itself
+#                 "header" = date read from an HTTP response header
+# CHAIN_PRIORITY  hook input priority for this source's own chain --
+#                 deliberately staggered (0 .. 4) so fail2ban's f2b-table
+#                 (priority -1 by default) runs FIRST, then firehol1,
+#                 then firehol2, then firehol3, then firehol4, then
+#                 abuseipdb last. Since each chain independently drops
+#                 matched packets, this doesn't change *whether* a bad
+#                 IP gets dropped -- only which table's counter gets
+#                 credited when an IP appears on more than one list.
+#                 NOTE: nftables has no in-place way to change an
+#                 existing chain's hook priority -- an already-bootstrapped
+#                 table keeps whatever priority it was created with until
+#                 it's deleted and recreated (`nft delete table inet
+#                 <table>`), which also resets that table's counter.
+case "$SOURCE" in
+    firehol1)
+        URL="https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level1.netset"
+        TABLE="firehol1_blocklist"; SET="firehol_l1"
+        MIN_COUNT={{ nftables_blocklist_sources_effective.firehol1.min_count | int }}; USE_CONDITIONAL=yes; AUTH_HEADER=""; COMMENT_SRC="body"; CHAIN_PRIORITY=0
+        ;;
+    firehol2)
+        URL="https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level2.netset"
+        TABLE="firehol2_blocklist"; SET="firehol_l2"
+        MIN_COUNT={{ nftables_blocklist_sources_effective.firehol2.min_count | int }}; USE_CONDITIONAL=yes; AUTH_HEADER=""; COMMENT_SRC="body"; CHAIN_PRIORITY=1
+        ;;
+    firehol3)
+        URL="https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level3.netset"
+        TABLE="firehol3_blocklist"; SET="firehol_l3"
+        MIN_COUNT={{ nftables_blocklist_sources_effective.firehol3.min_count | int }}; USE_CONDITIONAL=yes; AUTH_HEADER=""; COMMENT_SRC="body"; CHAIN_PRIORITY=2
+        ;;
+    firehol4)
+        # FireHOL's own wiki flags this level as carrying more false
+        # positives than 1-3. No special-casing -- if it's requested it
+        # drops like the others; that call belongs to whoever invokes
+        # this script, not to the script itself.
+        URL="https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level4.netset"
+        TABLE="firehol4_blocklist"; SET="firehol_l4"
+        MIN_COUNT={{ nftables_blocklist_sources_effective.firehol4.min_count | int }}; USE_CONDITIONAL=yes; AUTH_HEADER=""; COMMENT_SRC="body"; CHAIN_PRIORITY=3
+        ;;
+    abuseipdb)
+        # Templated by Ansible at deploy time. Empty when the abuseipdb
+        # source is off, and the run stops below.
+        ABUSEIPDB_API_KEY="{{ nftables_blocklist_abuseipdb_api_key if nftables_blocklist_sources_effective.abuseipdb.enabled | bool else '' }}"
+        URL="https://api.abuseipdb.com/api/v2/blacklist?limit={{ nftables_blocklist_abuseipdb_limit | int }}&confidenceMinimum={{ nftables_blocklist_abuseipdb_confidence_minimum | int }}"
+        TABLE="abuseipdb_blocklist"; SET="abuseipdb"
+        MIN_COUNT={{ nftables_blocklist_sources_effective.abuseipdb.min_count | int }}; USE_CONDITIONAL=no; AUTH_HEADER="Key: ${ABUSEIPDB_API_KEY}"; COMMENT_SRC="header"; CHAIN_PRIORITY=4
+        ;;
+    *)
+        usage
+        ;;
+esac
+
+# --skip-modified-checks reuses the exact same code paths already built
+# for AbuseIPDB (USE_CONDITIONAL=no) -- no separate branch needed, this
+# is the only place the override is applied.
+if [ "$SKIP_MODIFIED_CHECKS" = "yes" ]; then
+    USE_CONDITIONAL=no
+fi
+
+mkdir -p "$STATE_DIR"
+ETAG_FILE="$STATE_DIR/$SOURCE.etag"
+HASH_FILE="$STATE_DIR/$SOURCE.hash"
+
+TMPFILE=$(mktemp "/tmp/${SOURCE}-XXXXXX")
+HEADERS_FILE=$(mktemp "/tmp/${SOURCE}-headers-XXXXXX")
+trap 'rm -f "$TMPFILE" "$HEADERS_FILE"' EXIT
+
+# One shared syslog tag across every source (not "$SOURCE-blocklist")
+# so `journalctl -t refresh-blocklist` shows the full history for every
+# source in one place. Each line is still prefixed with [$SOURCE] to
+# stay attributable -- `journalctl -t refresh-blocklist | grep '\[firehol1\]'`
+# narrows to one source when needed.
+log() { logger -t "refresh-blocklist" "[$SOURCE] $*"; }
+die() { logger -t "refresh-blocklist" -p user.err -s "[$SOURCE] ERROR: $*"; exit 1; }
+
+if [ "$SOURCE" = "abuseipdb" ] && [ -z "$ABUSEIPDB_API_KEY" ]; then
+    die "no AbuseIPDB API key (the abuseipdb source is off in Ansible) -- aborting, not loading"
+fi
+
+# A reboot removes every nftables table this script made. Without this, a
+# source whose ETag or content hash still matched the last run would exit
+# as "unchanged" before re-creating its table, and stay unloaded until
+# upstream changed.
+# The ETag is still saved, so later runs go back to conditional requests.
+TABLE_MISSING=no
+if ! nft list table inet "$TABLE" >/dev/null 2>&1; then
+    TABLE_MISSING=yes
+    if [ "$USE_CONDITIONAL" = "yes" ] && [ "$DRY_RUN" = "no" ] && { [ -s "$ETAG_FILE" ] || [ -s "$HASH_FILE" ]; }; then
+        log "Table inet $TABLE missing (e.g. after a reboot) -- reloading regardless of ETag/hash"
+    fi
+fi
+
+# --- Fetch -------------------------------------------------------------
+CURL_ARGS=(-s --max-time 30 -D "$HEADERS_FILE" -o "$TMPFILE" -w "%{http_code}")
+[ -n "$AUTH_HEADER" ] && CURL_ARGS+=(-H "$AUTH_HEADER")
+[ "$COMMENT_SRC" = "header" ] && CURL_ARGS+=(-H "Accept: text/plain")
+if [ "$USE_CONDITIONAL" = "yes" ] && [ "$TABLE_MISSING" = "no" ] && [ -s "$ETAG_FILE" ]; then
+    CURL_ARGS+=(-H "If-None-Match: $(cat "$ETAG_FILE")")
+fi
+
+# Transport-level failures (DNS, connection refused, TLS, --max-time
+# timeout) make curl itself exit non-zero -- caught explicitly here so
+# they go through die() (logged, clear message) instead of a bare,
+# unlogged exit from set -e when the assignment fails.
+HTTP_CODE=$(curl "${CURL_ARGS[@]}" "$URL") || die "curl failed (exit $?) -- network/DNS/TLS error or timeout, aborting, not loading"
+
+if [ "$USE_CONDITIONAL" = "yes" ] && [ "$HTTP_CODE" = "304" ]; then
+    if [ "$DRY_RUN" = "yes" ]; then
+        echo "[DRY-RUN] $SOURCE: not modified (ETag match) -- no change, would skip reload"
+    else
+        log "Not modified (ETag match) -- skipping reload"
+    fi
+    exit 0
+fi
+
+# 429 called out specifically -- AbuseIPDB's /blacklist endpoint has a
+# low daily call cap, so rate-limiting is a real, expected case for
+# this source (not just a generic failure). Surface whatever
+# Retry-After/X-RateLimit-* headers came back so it's obvious when a
+# retry is worth trying, rather than just "fetch failed with HTTP 429".
+if [ "$HTTP_CODE" = "429" ]; then
+    RATELIMIT_INFO=$(grep -iE '^(retry-after|x-ratelimit-(limit|remaining|reset)):' "$HEADERS_FILE" | tr -d '\r' | tr '\n' ' ')
+    die "rate-limited (HTTP 429)${RATELIMIT_INFO:+ -- $RATELIMIT_INFO}-- aborting, not loading"
+fi
+[ "$HTTP_CODE" = "200" ] || die "fetch failed with HTTP $HTTP_CODE -- aborting, not loading"
+
+# Dry-run never persists state -- writing a new ETag here would make the
+# *next real run* think this fetch already happened, silently hiding a
+# genuine change from it.
+if [ "$USE_CONDITIONAL" = "yes" ] && [ "$DRY_RUN" = "no" ]; then
+    grep -i '^etag:' "$HEADERS_FILE" | sed -E 's/^[Ee][Tt][Aa][Gg]:[[:space:]]*//' | tr -d '\r\n' > "$ETAG_FILE" || true
+fi
+
+COUNT=$(grep -vc '^#' "$TMPFILE" || true)
+[ "$COUNT" -ge "$MIN_COUNT" ] || die "fetched list has only $COUNT entries (expected at least $MIN_COUNT) -- aborting, not loading"
+
+# --- Freshness (log only, never an nftables comment -- see header) -----
+case "$COMMENT_SRC" in
+    body)
+        FRESHNESS=$(grep -m1 -E '^# This File Date' "$TMPFILE" \
+            | sed -E 's/^# This File Date[[:space:]]*:[[:space:]]*//' | tr -d '\r' | sed -E 's/[[:space:]]+$//') || true
+        ;;
+    header)
+        FRESHNESS=$(grep -i '^x-generated-at:' "$HEADERS_FILE" \
+            | sed -E 's/^[Xx]-[Gg]enerated-[Aa]t:[[:space:]]*//' | tr -d '\r\n') || true
+        ;;
+esac
+[ -n "${FRESHNESS:-}" ] || FRESHNESS="fetched $(date -u +'%a %b %d %H:%M:%S UTC %Y')"
+
+# Normalise before hashing/loading: strip comments and CRs so a source
+# bumping its own timestamp with an unchanged IP set doesn't look
+# "changed", and stray \r can't corrupt the nft element list syntax.
+NORMALISED_RAW=$(grep -v '^#' "$TMPFILE" | tr -d '\r' | grep -v '^$' | sort -u)
+
+# IPv4-only: the set below is typed ipv4_addr. AbuseIPDB's /blacklist
+# (any source, in principle) can include IPv6 entries -- unfiltered,
+# those reach `nft add element` and abort the *entire* load with
+# "Address family for hostname not supported", since the whole
+# transaction is atomic. IPv6 is explicitly out of scope for this
+# script (see requirements doc); filter here, before both the hash and
+# the load, so upstream adding/dropping IPv6-only entries doesn't
+# register as a change we care about either.
+IPV4_ONLY=$(printf '%s\n' "$NORMALISED_RAW" | grep -E '^[0-9]{1,3}(\.[0-9]{1,3}){3}(/[0-9]{1,2})?$' || true)
+RAW_COUNT=$(printf '%s\n' "$NORMALISED_RAW" | grep -c '^' || true)
+IPV4_COUNT=$(printf '%s\n' "$IPV4_ONLY" | grep -c '^' || true)
+SKIPPED_COUNT=$((RAW_COUNT - IPV4_COUNT))
+
+# Strip RFC1918/RFC6890 special-use ranges (loopback, private, link-local,
+# documentation/test, CGN, multicast, reserved) before loading. Upstream
+# sources -- FireHOL's level1 list in particular -- include the canonical
+# bogon blocks (127.0.0.0/8 and friends) deliberately, as a reference
+# list of "this should never appear as a routable source", not as
+# attacker IPs. Loading them into a set matched on ip saddr on the input
+# chain would drop them right along with genuine threats; that this is
+# currently harmless is down entirely to the `iif "lo" accept` rule
+# sitting ahead of the drop rule in the bootstrap chain below -- fragile
+# to rely on, since anyone editing that chain later has no reason to
+# know the ordering is load-bearing. Filtering the data at the source
+# means correctness no longer depends on that rule staying exactly
+# where it is.
+#
+# Matched by range containment/overlap, not exact string, so a source
+# listing a narrower sub-range inside one of these blocks (e.g.
+# 127.0.0.1/32 instead of 127.0.0.0/8) is still caught. Pure integer
+# arithmetic (^, no gawk-only bitwise extensions) -- portable to
+# Debian/Ubuntu's default mawk as well as gawk.
+NORMALISED=$(printf '%s\n' "$IPV4_ONLY" | awk '
+BEGIN {
+    n = split("0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.0.0.0/24 192.0.2.0/24 192.168.0.0/16 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/4 240.0.0.0/4 255.255.255.255/32", bogons, " ")
+    for (i = 1; i <= n; i++) {
+        split(bogons[i], p, "/")
+        pre = p[2] + 0
+        blocksize = 2 ^ (32 - pre)
+        s = ip2int(p[1])
+        exStart[i] = int(s / blocksize) * blocksize
+        exEnd[i] = exStart[i] + blocksize - 1
+    }
+    nbogons = n
+}
+function ip2int(ip,    a) {
+    split(ip, a, ".")
+    return (a[1] * 16777216) + (a[2] * 65536) + (a[3] * 256) + a[4]
+}
+{
+    line = $0
+    if (index(line, "/") > 0) {
+        split(line, parts, "/")
+        ip = parts[1]; pre = parts[2] + 0
+    } else {
+        ip = line; pre = 32
+    }
+    blocksize = 2 ^ (32 - pre)
+    s = ip2int(ip)
+    start = int(s / blocksize) * blocksize
+    fin = start + blocksize - 1
+    keep = 1
+    for (i = 1; i <= nbogons; i++) {
+        if (start <= exEnd[i] && fin >= exStart[i]) { keep = 0; break }
+    }
+    if (keep) print line
+}
+' || true)
+LOADED_COUNT=$(printf '%s\n' "$NORMALISED" | grep -c '^' || true)
+BOGON_SKIPPED_COUNT=$((IPV4_COUNT - LOADED_COUNT))
+[ "$LOADED_COUNT" -ge "$MIN_COUNT" ] || die "after filtering to IPv4 and stripping special-use ranges, only $LOADED_COUNT entries remain (expected at least $MIN_COUNT; $SKIPPED_COUNT non-IPv4, $BOGON_SKIPPED_COUNT special-use) -- aborting, not loading"
+
+NEW_HASH=$(printf '%s' "$NORMALISED" | sha256sum | cut -d' ' -f1)
+HASH_MATCH=no
+if [ "$USE_CONDITIONAL" = "yes" ] && [ "$TABLE_MISSING" = "no" ] && [ -s "$HASH_FILE" ] && [ "$NEW_HASH" = "$(cat "$HASH_FILE")" ]; then
+    HASH_MATCH=yes
+fi
+
+if [ "$HASH_MATCH" = "yes" ]; then
+    if [ "$DRY_RUN" = "yes" ]; then
+        echo "[DRY-RUN] $SOURCE: content unchanged (hash match, source date: $FRESHNESS) -- would skip reload"
+    else
+        log "Content unchanged (hash match, source date: $FRESHNESS) -- skipping reload"
+    fi
+    exit 0
+fi
+
+if [ "$DRY_RUN" = "yes" ]; then
+    echo "[DRY-RUN] $SOURCE: would reload -- $LOADED_COUNT entries, source date: $FRESHNESS"
+    if [ "$SKIPPED_COUNT" -gt 0 ]; then
+        echo "[DRY-RUN] $SOURCE: $SKIPPED_COUNT non-IPv4 entries in the fetched list would be skipped (IPv6 not supported by this set)"
+    fi
+    if [ "$BOGON_SKIPPED_COUNT" -gt 0 ]; then
+        echo "[DRY-RUN] $SOURCE: $BOGON_SKIPPED_COUNT special-use/bogon entries (loopback, private, etc.) would be skipped"
+    fi
+    if nft list table inet "$TABLE" >/dev/null 2>&1; then
+        echo "[DRY-RUN] $SOURCE: table inet $TABLE already exists -- would flush + reload set $SET"
+    else
+        echo "[DRY-RUN] $SOURCE: table inet $TABLE does not exist yet -- first real run would bootstrap it"
+    fi
+    if [ "$TABLE_MISSING" = "yes" ] && [ -s "$HASH_FILE" ] && [ "$NEW_HASH" = "$(cat "$HASH_FILE")" ]; then
+        echo "[DRY-RUN] $SOURCE: content unchanged since the last real run -- would reload because the table is missing"
+    elif [ -s "$HASH_FILE" ]; then
+        echo "[DRY-RUN] $SOURCE: hash changed ($(cut -c1-12 <"$HASH_FILE")... -> $(printf '%s' "$NEW_HASH" | cut -c1-12)...)"
+    else
+        echo "[DRY-RUN] $SOURCE: no previous hash on record (first run for this source)"
+    fi
+    exit 0
+fi
+
+# --- Bootstrap table/chain/rule, once -----------------------------------
+if ! nft list table inet "$TABLE" >/dev/null 2>&1; then
+    nft -f - <<EOF
+table inet $TABLE {
+    # Named counter (rather than an inline "counter drop") so it can be
+    # queried on its own -- "nft list counter inet $TABLE drops" -- with
+    # no chain/set noise mixed in.
+    counter drops {
+        comment "$SOURCE"
+    }
+
+    set $SET {
+        type ipv4_addr
+        flags interval
+        auto-merge
+    }
+
+    chain input {
+        type filter hook input priority $CHAIN_PRIORITY;
+
+        # Belt-and-braces: special-use/bogon ranges (127.0.0.0/8 and
+        # friends) are now stripped from the fetched data itself before
+        # it ever reaches the set -- see the filtering above -- so this
+        # exception is no longer the only thing standing between the
+        # set and genuine loopback traffic, but it stays as a second,
+        # independent layer regardless of what any given source sends.
+        iif "lo" accept
+        ip saddr @$SET counter name drops drop
+    }
+}
+EOF
+    log "Bootstrapped table inet $TABLE"
+fi
+
+# --- Reload set contents only, atomically, chunked ----------------------
+# Chunked rather than one giant `elements = { ... }` line: large sources
+# (AbuseIPDB, FireHOL levels 2-4) can be big enough to hit netlink's
+# message-size limits in a single add-element statement.
+generate_add_elements() {
+    local -a chunk
+    {% raw %}while mapfile -t -n "$CHUNK_SIZE" chunk && ((${#chunk[@]} > 0)); do{% endraw %}
+        local joined
+        printf -v joined ',%s' "${chunk[@]}"
+        echo "add element inet $TABLE $SET { ${joined:1} }"
+    done
+}
+
+{
+    echo "flush set inet $TABLE $SET"
+    printf '%s\n' "$NORMALISED" | generate_add_elements
+} | nft -f -
+
+printf '%s' "$NEW_HASH" > "$HASH_FILE"
+SKIP_NOTE=""
+[ "$SKIPPED_COUNT" -gt 0 ] && SKIP_NOTE="$SKIP_NOTE, skipped $SKIPPED_COUNT non-IPv4 entries"
+[ "$BOGON_SKIPPED_COUNT" -gt 0 ] && SKIP_NOTE="$SKIP_NOTE, skipped $BOGON_SKIPPED_COUNT special-use entries"
+log "Refreshed $SET with $LOADED_COUNT entries (source date: $FRESHNESS)$SKIP_NOTE"

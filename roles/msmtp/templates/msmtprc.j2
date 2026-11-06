@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+defaults
+auth           {{ 'on' if msmtp_auth | bool else 'off' }}
+tls            {{ 'on' if msmtp_tls | bool else 'off' }}
+{% if msmtp_tls | bool %}
+tls_trust_file {{ msmtp_tls_trust_file }}
+tls_starttls   {{ 'on' if msmtp_tls_starttls | bool else 'off' }}
+{% endif %}
+{% if msmtp_logfile | length > 0 %}
+logfile        {{ msmtp_logfile }}
+{% endif %}
+
+account        {{ msmtp_account }}
+host           {{ msmtp_host }}
+port           {{ msmtp_port }}
+from           {{ msmtp_from }}
+{% if msmtp_auth | bool %}
+user           {{ msmtp_user }}
+password       {{ msmtp_password }}
+{% endif %}
+
+account default : {{ msmtp_account }}

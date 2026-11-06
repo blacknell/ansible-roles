@@ -1,0 +1,68 @@
+---
+- name: Check the AbuseIPDB API key is set
+  when:
+    - nftables_blocklist_enabled | bool
+    - nftables_blocklist_sources_effective.abuseipdb.enabled | bool
+  ansible.builtin.assert:
+    that:
+      - nftables_blocklist_abuseipdb_api_key | length > 0
+    fail_msg: >-
+      The abuseipdb source is on for {{ inventory_hostname }} but there's no
+      API key. Set the {{ nftables_blocklist_abuseipdb_key_env_var }} env var (e.g. run
+      under op run), set nftables_blocklist_abuseipdb_api_key, or turn the source off
+      with nftables_blocklist_sources_override.
+    quiet: true
+
+- name: Install curl
+  when: nftables_blocklist_enabled | bool
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Check for nft
+  ansible.builtin.stat:
+    path: /usr/sbin/nft
+  register: nftables_blocklist_nft_binary
+
+- name: Report hosts without nftables
+  when:
+    - nftables_blocklist_enabled | bool
+    - not nftables_blocklist_nft_binary.stat.exists
+  ansible.builtin.debug:
+    msg: >-
+      Blocklists skipped on {{ inventory_hostname }}: /usr/sbin/nft not found.
+      Install nftables to use them.
+
+- name: Install the blocklist refresh script
+  when:
+    - nftables_blocklist_enabled | bool
+    - nftables_blocklist_nft_binary.stat.exists
+  ansible.builtin.template:
+    src: refresh-ip-blocklist.sh.j2
+    dest: "{{ nftables_blocklist_script_path }}"
+    owner: root
+    group: root
+    mode: "0700"
+  # The script holds the AbuseIPDB API key, so keep it out of --diff output
+  diff: false
+
+- name: Schedule the blocklist refreshes
+  ansible.builtin.cron:
+    name: "{{ item.value.cron_name }}"
+    minute: "{{ item.value.minute }}"
+    hour: "{{ item.value.hour }}"
+    job: "{{ nftables_blocklist_script_path }} --source {{ item.key }} > /dev/null 2>&1"
+    user: root
+    state: >-
+      {{ 'present' if (nftables_blocklist_enabled | bool
+                       and nftables_blocklist_nft_binary.stat.exists
+                       and item.value.enabled | bool) else 'absent' }}
+  loop: "{{ nftables_blocklist_sources_effective | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Remove the blocklist refresh script
+  when: not (nftables_blocklist_enabled | bool)
+  ansible.builtin.file:
+    path: "{{ nftables_blocklist_script_path }}"
+    state: absent
