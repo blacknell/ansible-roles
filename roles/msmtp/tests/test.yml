@@ -1,0 +1,11 @@
+---
+- name: Test msmtp role
+  hosts: localhost
+  remote_user: root
+  vars:
+    msmtp_host: smtp.example.com
+    msmtp_from: host@example.com
+    msmtp_user: host@example.com
+    msmtp_password: not-a-real-password
+  roles:
+    - msmtp

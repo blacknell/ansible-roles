@@ -1,0 +1,2 @@
+---
+nftables_blocklist_sources_effective: "{{ nftables_blocklist_sources | combine(nftables_blocklist_sources_override, recursive=True) }}"

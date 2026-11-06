@@ -1,0 +1,66 @@
+---
+# Install the blocklist refresh script and its cron jobs. Off by default, so
+# the role can sit in a baseline playbook and only hosts that set this get
+# blocklists. Setting it back to false removes the script and the cron jobs.
+nftables_blocklist_enabled: false
+
+# The AbuseIPDB API key comes from this environment variable on the
+# controller (e.g. set by `op run`), unless nftables_blocklist_abuseipdb_api_key is set
+# directly. Only needed while the abuseipdb source is on.
+nftables_blocklist_abuseipdb_key_env_var: ABUSEIPDB_KEY
+nftables_blocklist_abuseipdb_api_key: "{{ lookup('ansible.builtin.env', nftables_blocklist_abuseipdb_key_env_var, default='') }}"
+
+# AbuseIPDB /blacklist parameters: the most entries to fetch, and the lowest
+# abuse confidence score (0-100) to include.
+nftables_blocklist_abuseipdb_limit: 500000
+nftables_blocklist_abuseipdb_confidence_minimum: 90
+
+# The sources and their cron schedules. Change one with
+# nftables_blocklist_sources_override (merged into this), e.g.
+#   nftables_blocklist_sources_override:
+#     firehol4: {enabled: false}
+# enabled:   schedule this source. Turning one off removes its cron job; its
+#            nftables table stays loaded until a reboot or
+#            `sudo nft delete table inet <source>_blocklist`.
+# cron_name: the cron job's name. Keep it unchanged, or a second job is added
+#            next to the old one.
+# min_count: abort rather than load a list with fewer entries (a truncated
+#            fetch or upstream outage).
+nftables_blocklist_sources:
+  firehol1:
+    enabled: true
+    cron_name: FireHOL 1 blocklist refresh
+    minute: "0"
+    hour: "*/3"
+    min_count: 1000
+  firehol2:
+    enabled: true
+    cron_name: FireHOL 2 blocklist refresh
+    minute: "*/15"
+    hour: "*"
+    min_count: 100
+  firehol3:
+    enabled: true
+    cron_name: FireHOL 3 blocklist refresh
+    minute: "*/15"
+    hour: "*"
+    min_count: 100
+  firehol4:
+    # FireHOL's own wiki notes more false positives than levels 1-3
+    enabled: true
+    cron_name: FireHOL 4 blocklist refresh
+    minute: "*/15"
+    hour: "*"
+    min_count: 100
+  abuseipdb:
+    # AbuseIPDB's /blacklist endpoint has a low daily call limit
+    enabled: true
+    cron_name: AbuseIPDB blocklist refresh
+    minute: "0"
+    hour: "2"
+    min_count: 100
+nftables_blocklist_sources_override: {}
+
+# Where the refresh script goes. It holds the AbuseIPDB API key, so it's
+# only readable by root.
+nftables_blocklist_script_path: /usr/local/bin/refresh-ip-blocklist.sh

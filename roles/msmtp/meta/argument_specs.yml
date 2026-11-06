@@ -1,0 +1,72 @@
+---
+argument_specs:
+  main:
+    short_description: Install msmtp as the host's sendmail, relaying through an SMTP server
+    options:
+      msmtp_host:
+        type: str
+        default: ""
+        description: SMTP server to relay through. Required.
+      msmtp_port:
+        type: int
+        default: 465
+        description: SMTP port. 465 for TLS from the start, 587 with msmtp_tls_starttls.
+      msmtp_from:
+        type: str
+        default: ""
+        description: Sender address for mail sent through msmtp. Required.
+      msmtp_tls:
+        type: bool
+        default: true
+        description: Encrypt the connection to the server.
+      msmtp_tls_starttls:
+        type: bool
+        default: false
+        description: Use STARTTLS (port 587) instead of TLS from the start (port 465).
+      msmtp_tls_trust_file:
+        type: path
+        default: /etc/ssl/certs/ca-certificates.crt
+        description: CA bundle used to check the server's certificate.
+      msmtp_auth:
+        type: bool
+        default: true
+        description: Log in to the server. When true, msmtp_user and a password are required.
+      msmtp_user:
+        type: str
+        default: ""
+        description: SMTP login user.
+      msmtp_password_env_var:
+        type: str
+        default: SMTP_APP_PASSWORD
+        description: Controller env var holding the SMTP password.
+      msmtp_password:
+        type: str
+        no_log: true
+        description: SMTP password. Defaults to the env var above.
+      msmtp_account:
+        type: str
+        default: smtp
+        description: Account name in /etc/msmtprc, also made the default account.
+      msmtp_logfile:
+        type: str
+        default: /var/log/msmtp.log
+        description: Log file for sent mail. Empty for no log file.
+      msmtp_install_mta:
+        type: bool
+        default: true
+        description: Install msmtp-mta, which provides /usr/sbin/sendmail.
+      msmtp_config_group:
+        type: str
+        default: adm
+        description: Group that can read /etc/msmtprc, and so send mail.
+      msmtp_config_mode:
+        type: str
+        default: "0640"
+        description: File mode of /etc/msmtprc.
+      msmtp_logrotate_enabled:
+        type: bool
+        default: true
+        description: Write /etc/logrotate.d/msmtp. Turn off if the logrotate role's msmtp service is on.
+      msmtp_logrotate_options:
+        type: str
+        description: Body of the logrotate stanza for msmtp_logfile.

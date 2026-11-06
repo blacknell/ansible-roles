@@ -1,0 +1,40 @@
+---
+- name: Check the SMTP settings are set
+  ansible.builtin.assert:
+    that:
+      - msmtp_host | length > 0
+      - msmtp_from | length > 0
+      - not (msmtp_auth | bool) or msmtp_user | length > 0
+      - not (msmtp_auth | bool) or msmtp_password | length > 0
+    fail_msg: >-
+      msmtp needs msmtp_host and msmtp_from, and with msmtp_auth also
+      msmtp_user and a password, for {{ inventory_hostname }}. Set them in
+      group_vars or host_vars. The password comes from the
+      {{ msmtp_password_env_var }} env var unless msmtp_password is set.
+    quiet: true
+
+- name: Install msmtp
+  ansible.builtin.apt:
+    name: "{{ ['msmtp'] + (['msmtp-mta'] if msmtp_install_mta | bool else []) }}"
+    state: present
+
+- name: Configure msmtp
+  ansible.builtin.template:
+    src: msmtprc.j2
+    dest: /etc/msmtprc
+    owner: root
+    group: "{{ msmtp_config_group }}"
+    mode: "{{ msmtp_config_mode }}"
+  # The file holds the SMTP password, so keep it out of --diff output
+  diff: false
+
+- name: Rotate the msmtp log
+  when:
+    - msmtp_logrotate_enabled | bool
+    - msmtp_logfile | length > 0
+  ansible.builtin.template:
+    src: logrotate.j2
+    dest: /etc/logrotate.d/msmtp
+    owner: root
+    group: root
+    mode: "0644"

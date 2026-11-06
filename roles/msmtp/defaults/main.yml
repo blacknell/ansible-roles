@@ -1,0 +1,55 @@
+---
+# SMTP server to relay through. Required: the role stops with a message if
+# it's empty.
+msmtp_host: ""
+
+# 465 is SMTP over TLS from the start (msmtp_tls_starttls: false). For port
+# 587, set msmtp_tls_starttls: true.
+msmtp_port: 465
+
+# Envelope and header sender for mail sent through msmtp. Required.
+msmtp_from: ""
+
+# Encrypt the connection, and check the server's certificate against this CA
+# bundle.
+msmtp_tls: true
+msmtp_tls_starttls: false
+msmtp_tls_trust_file: /etc/ssl/certs/ca-certificates.crt
+
+# Log in to the server. When true, msmtp_user and a password are required.
+msmtp_auth: true
+msmtp_user: ""
+
+# The password comes from this environment variable on the controller (e.g.
+# set by `op run`), unless msmtp_password is set directly, e.g. from a vault.
+msmtp_password_env_var: SMTP_APP_PASSWORD
+msmtp_password: "{{ lookup('ansible.builtin.env', msmtp_password_env_var, default='') }}"
+
+# Name of the account in /etc/msmtprc. It's also made the default account.
+msmtp_account: smtp
+
+# Where msmtp logs each message it sends. Empty: no log file.
+msmtp_logfile: /var/log/msmtp.log
+
+# Install msmtp-mta, which provides /usr/sbin/sendmail, so programs that send
+# mail through sendmail (cron, fail2ban, mail) use msmtp.
+msmtp_install_mta: true
+
+# /etc/msmtprc holds the password, so it's only readable by root and this
+# group. Users that send mail need to be root or in this group.
+msmtp_config_group: adm
+msmtp_config_mode: "0640"
+
+# Rotate msmtp_logfile with /etc/logrotate.d/msmtp. Leave this off if the
+# logrotate role's `msmtp` service is on, since both write that file.
+msmtp_logrotate_enabled: true
+msmtp_logrotate_options: |
+  rotate 12
+  monthly
+  dateext
+  create 640 root adm
+  copytruncate
+  compress
+  missingok
+  notifempty
+  delaycompress

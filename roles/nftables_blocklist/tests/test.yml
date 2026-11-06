@@ -1,0 +1,9 @@
+---
+- name: Test nftables_blocklist role
+  hosts: localhost
+  remote_user: root
+  vars:
+    nftables_blocklist_enabled: true
+    nftables_blocklist_abuseipdb_api_key: not-a-real-key
+  roles:
+    - nftables_blocklist

@@ -2,6 +2,17 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.18.0
+
+### Added
+
+- msmtp: new role. Installs msmtp as the host's sendmail, relaying through an SMTP server. Moved from blacknell/ansible, with every setting a variable and no ties to other roles
+- nftables_blocklist: new role. Loads FireHOL levels 1-4 and AbuseIPDB's blacklist into nftables on a cron schedule. Moved from blacknell/ansible's `firehol` role (variables renamed from `firehol_*`), with sources, schedules and limits as variables
+
+### Fixed
+
+- nftables_blocklist: after a reboot, FireHOL lists are reloaded on their next run. Before, a run whose ETag or content hash matched the last one exited as unchanged without re-creating the table, so the list stayed unloaded until upstream changed
+
 ## 1.17.0
 
 ### Changed

@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  author: Paul Blacknell
+  description: Loads FireHOL and AbuseIPDB IP blocklists into nftables on a cron schedule
+
+  issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - debian
+    - nftables
+    - firewall
+    - blocklist
+    - security
+
+dependencies: []

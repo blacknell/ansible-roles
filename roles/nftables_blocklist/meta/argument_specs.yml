@@ -1,0 +1,36 @@
+---
+argument_specs:
+  main:
+    short_description: Load FireHOL and AbuseIPDB IP blocklists into nftables on a cron schedule
+    options:
+      nftables_blocklist_enabled:
+        type: bool
+        default: false
+        description: Install the refresh script and cron jobs. False removes them.
+      nftables_blocklist_abuseipdb_key_env_var:
+        type: str
+        default: ABUSEIPDB_KEY
+        description: Controller env var holding the AbuseIPDB API key.
+      nftables_blocklist_abuseipdb_api_key:
+        type: str
+        no_log: true
+        description: AbuseIPDB API key. Defaults to the env var above. Required while the abuseipdb source is on.
+      nftables_blocklist_abuseipdb_limit:
+        type: int
+        default: 500000
+        description: Most entries to fetch from AbuseIPDB's /blacklist.
+      nftables_blocklist_abuseipdb_confidence_minimum:
+        type: int
+        default: 90
+        description: Lowest AbuseIPDB abuse confidence score (0-100) to include.
+      nftables_blocklist_sources:
+        type: dict
+        description: The sources (firehol1-4, abuseipdb), each with enabled, cron_name, minute, hour and min_count.
+      nftables_blocklist_sources_override:
+        type: dict
+        default: {}
+        description: Per-source changes merged into nftables_blocklist_sources.
+      nftables_blocklist_script_path:
+        type: path
+        default: /usr/local/bin/refresh-ip-blocklist.sh
+        description: Where the refresh script goes.

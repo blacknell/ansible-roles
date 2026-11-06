@@ -1,0 +1,13 @@
+---
+# Debian-only. Other platforms are skipped rather than failed, so the role
+# can sit in a playbook that runs against mixed hosts.
+- name: Skip hosts that aren't Debian
+  when: ansible_facts['os_family'] | default('') != 'Debian'
+  ansible.builtin.debug:
+    msg: >-
+      msmtp role skipped on {{ inventory_hostname }}: needs a Debian-family
+      OS, found {{ ansible_facts['distribution'] | default('unknown') }}
+
+- name: Install and configure msmtp
+  when: ansible_facts['os_family'] | default('') == 'Debian'
+  ansible.builtin.include_tasks: debian.yml
