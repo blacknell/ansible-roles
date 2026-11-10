@@ -1,2 +1,32 @@
 ---
-# defaults file for update_debian
+# How long (seconds) an apt cache counts as fresh. The role refreshes it
+# before upgrading if it's older than this, so playbooks don't need their
+# own "update apt cache" pre_task. 0 always refreshes.
+update_debian_cache_valid_time: 3600
+
+# Kind of upgrade, passed to the apt module's "upgrade" option:
+#   dist - apt-get dist-upgrade: installs/removes packages as needed to
+#          upgrade everything, including new kernels (the default)
+#   full - aptitude full-upgrade (needs aptitude)
+#   safe - aptitude safe-upgrade: never removes packages (needs aptitude)
+update_debian_upgrade: dist
+
+# Remove downloaded .debs that can no longer be downloaded (apt-get autoclean).
+update_debian_autoclean: true
+
+# Remove packages that were installed as dependencies and are no longer
+# needed, such as old kernels (apt-get autoremove).
+update_debian_autoremove: true
+
+# Skip hosts with openmediavault installed: OMV manages its own updates and
+# an apt dist-upgrade can break it.
+update_debian_skip_openmediavault: true
+
+# Reboot the host when an upgrade leaves /var/run/reboot-required (a new
+# kernel, libc, systemd ...). Off by default: the role reports that a reboot
+# is needed and lists the packages, and you reboot when it suits you.
+update_debian_reboot: false
+
+# With update_debian_reboot, how long (seconds) to wait for the host to come
+# back and accept SSH again before the task fails.
+update_debian_reboot_timeout: 600

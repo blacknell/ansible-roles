@@ -80,7 +80,7 @@ For a stable, repeatable setup, tag releases in this repo and pin to a tag inste
 |----------|-----------------------------------------------|
 | [docker](roles/docker) | Installs Docker CE from the official apt repo |
 | [fzf](roles/fzf) | Installs fzf and its bash key bindings |
-| [update_debian](roles/update_debian) | Updates, dist-upgrades, and cleans up apt packages |
+| [update_debian](roles/update_debian) | Updates all apt packages, cleans up, and reports or does any reboot needed. Skips non-Debian and openmediavault hosts |
 | [std_packages](roles/std_packages) | Baseline host setup: timezone, profile.d scripts, apt preference pinning, git/rsync/unattended-upgrades, optional iperf3, crond log verbosity |
 | [timesync](roles/timesync) | Configures systemd-timesyncd via a drop-in and removes conflicting time daemons (ntp/ntpsec/chrony) |
 | [ntp](roles/ntp) | **Deprecated**, use [timesync](roles/timesync). Installs ntp with a UK pool.ntp.org config |

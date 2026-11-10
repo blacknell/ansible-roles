@@ -1,14 +1,41 @@
 ---
 # tasks file for update_debian
+#
+# Only acts on Debian hosts. Everything else (macOS, ...) is skipped with a
+# message rather than failed, so the role can run against a whole inventory.
+# Hosts with openmediavault are skipped too (update_debian_skip_openmediavault).
 
-- name: Upgrade the OS (apt-get dist-upgrade)
-  ansible.builtin.apt:
-    upgrade: dist
+- name: Gather the OS family when the play didn't gather facts
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+  when: ansible_facts['os_family'] is not defined
 
-- name: Remove useless packages from the cache
-  ansible.builtin.apt:
-    autoclean: true
+- name: Report hosts skipped because they aren't Debian
+  ansible.builtin.debug:
+    msg: >-
+      Skipping update_debian on {{ inventory_hostname }}:
+      {{ ansible_facts['os_family'] }} isn't Debian.
+  when: ansible_facts['os_family'] != 'Debian'
 
-- name: Remove dependencies that are no longer required
-  ansible.builtin.apt:
-    autoremove: true
+- name: Update Debian
+  when: ansible_facts['os_family'] == 'Debian'
+  block:
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+      when: update_debian_skip_openmediavault | bool
+
+    - name: Check whether openmediavault manages this host
+      ansible.builtin.set_fact:
+        update_debian_is_omv: >-
+          {{ (update_debian_skip_openmediavault | bool)
+             and ('openmediavault' in ansible_facts['packages'] | default({})) }}
+
+    - name: Report hosts skipped because openmediavault manages them
+      ansible.builtin.debug:
+        msg: "Skipping update_debian on {{ inventory_hostname }}: openmediavault manages this host."
+      when: update_debian_is_omv | bool
+
+    - name: Upgrade packages on Debian
+      ansible.builtin.include_tasks: debian.yml
+      when: not (update_debian_is_omv | bool)

@@ -1,0 +1,51 @@
+---
+- name: Refresh the apt cache and upgrade the OS
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ update_debian_cache_valid_time }}"
+    upgrade: "{{ update_debian_upgrade }}"
+
+- name: Remove useless packages from the cache
+  ansible.builtin.apt:
+    autoclean: true
+  when: update_debian_autoclean | bool
+
+- name: Remove dependencies that are no longer required
+  ansible.builtin.apt:
+    autoremove: true
+  when: update_debian_autoremove | bool
+
+- name: Check whether a reboot is needed
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: update_debian_reboot_required
+
+- name: Read the packages that need the reboot
+  ansible.builtin.slurp:
+    src: /var/run/reboot-required.pkgs
+  register: update_debian_reboot_pkgs
+  failed_when: false
+  when: update_debian_reboot_required.stat.exists
+
+- name: Report that a reboot is needed
+  ansible.builtin.debug:
+    msg: >-
+      {{ inventory_hostname }} needs a reboot for:
+      {{ update_debian_reboot_pkg_list | default('(packages not listed)', true) }}.
+      {{ update_debian_reboot_action }}
+  vars:
+    update_debian_reboot_action: >-
+      {{ 'Not rebooting (update_debian_reboot is false): reboot at a quiet time.' if not update_debian_reboot | bool
+         else 'Would reboot now (check mode).' if ansible_check_mode
+         else 'Rebooting now.' }}
+    update_debian_reboot_pkg_list: >-
+      {{ (update_debian_reboot_pkgs.content | default('') | b64decode).split() | unique | join(', ') }}
+  when: update_debian_reboot_required.stat.exists
+
+- name: Reboot to finish the upgrade
+  ansible.builtin.reboot:
+    msg: Rebooting to finish OS updates (Ansible update_debian)
+    reboot_timeout: "{{ update_debian_reboot_timeout }}"
+  when:
+    - update_debian_reboot | bool
+    - update_debian_reboot_required.stat.exists

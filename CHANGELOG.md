@@ -2,6 +2,20 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.19.0
+
+### Added
+
+- update_debian: settings as variables, with `meta/argument_specs.yml`: `update_debian_cache_valid_time`, `update_debian_upgrade` (`dist`, `full` or `safe`), `update_debian_autoclean` and `update_debian_autoremove`
+- update_debian: after upgrading, reports when `/var/run/reboot-required` exists and lists the packages that need it. `update_debian_reboot: true` reboots those hosts and waits up to `update_debian_reboot_timeout` seconds (default 600) for them to come back. Off by default
+
+### Changed
+
+- update_debian: refreshes the apt cache itself (if older than `update_debian_cache_valid_time`, default an hour), so playbooks no longer need an "update apt cache" `pre_task`
+- update_debian: skips non-Debian hosts (e.g. macOS) with a message instead of failing, so it can run against a whole inventory
+- update_debian: skips openmediavault hosts (`update_debian_skip_openmediavault`, default true), moved from blacknell/ansible's `update-debian.yml`
+- update_debian: works in plays with `gather_facts: false`
+
 ## 1.18.0
 
 ### Added
