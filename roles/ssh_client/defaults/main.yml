@@ -1,3 +1,9 @@
 ---
-ssh_client_config_hosts_block: "{{ lookup('ansible.builtin.file', 'config-hosts') }}"
-ssh_client_authorized_key: ""   # deliberately empty by default - every calling playbook must supply their own key. Do not set this here
+# Key added to the connecting user's authorized_keys. Empty skips it: every
+# calling playbook supplies its own key, so don't set one here.
+# Falls back to ssh_authorized_key, the name the tasks used to read.
+ssh_client_authorized_key: "{{ ssh_authorized_key | default('') }}"
+
+# Host rules written to ~/.ssh/config. Falls back to ssh_config_hosts_block,
+# the name the tasks used to read, then to the role's files/config-hosts.
+ssh_client_config_hosts_block: "{{ ssh_config_hosts_block | default(lookup('ansible.builtin.file', 'config-hosts')) }}"

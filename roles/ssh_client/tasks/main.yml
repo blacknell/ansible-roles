@@ -6,10 +6,10 @@
     mode: "0700"
 
 - name: add SSH public key to authorized_keys
-  when: ssh_authorized_key | length > 0
+  when: ssh_client_authorized_key | length > 0
   ansible.posix.authorized_key:
     user: "{{ ansible_user }}"
-    key: "{{ ssh_authorized_key }}"
+    key: "{{ ssh_client_authorized_key }}"
     state: present
 
 - name: configure SSH client config global rules
@@ -28,7 +28,7 @@
     prepend_newline: true
     path: "{{ ansible_facts['user_dir'] }}/.ssh/config"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - HOSTS RULES"
-    block: "{{ ssh_config_hosts_block }}"
+    block: "{{ ssh_client_config_hosts_block }}"
 
 - name: configure SSH client to use the 1password agent for authentication
   when: ansible_facts['os_family'] == 'Darwin'

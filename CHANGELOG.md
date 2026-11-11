@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.19.1
+
+### Fixed
+
+- ssh_client: the tasks read `ssh_authorized_key` and `ssh_config_hosts_block`, so the role's own defaults (`ssh_client_authorized_key`, `ssh_client_config_hosts_block`) were never used, and callers that didn't set the old names failed. The tasks now read the `ssh_client_` names, which fall back to the old ones, so existing playbooks keep working. Move to the `ssh_client_` names; the old ones will be dropped in a later release
+
 ## 1.19.0
 
 ### Added
