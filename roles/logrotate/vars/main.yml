@@ -1,2 +1,31 @@
 ---
 # vars file for logrotate
+
+# Template validation. logrotate -d also reports things about the host as
+# errors (a log that doesn't exist yet, a group-writable /var/log), so this
+# fails only on errors in the file itself, which name it with a line number
+# ("error: <file>:2 unknown option"), or when a stanza is rejected.
+__logrotate_validate: >-
+  sh -c 'out=$(logrotate -d "$1" 2>&1);
+  if echo "$out" | grep -e "^error: $1:" -e "^error: found error in" -q;
+  then echo "$out" >&2; exit 1; fi' _ %s
+
+# Used by entry.yml when the caller leaves a key out
+__logrotate_entry_defaults:
+  frequency: weekly
+  rotate: 4
+  compress: true
+  delaycompress: true
+  missingok: true
+  notifempty: true
+  sharedscripts: true
+  copytruncate: false
+  create: ""
+  su: ""
+  dateext: null
+  prerotate: ""
+  postrotate: ""
+  options: []
+  body: ""
+  replaces_package_file: false
+  state: present

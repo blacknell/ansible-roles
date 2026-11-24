@@ -41,7 +41,10 @@ The role stops with a message if a required variable is empty.
 | `msmtp_config_group` | No | `adm` | Group that can read `/etc/msmtprc`, and so send mail |
 | `msmtp_config_mode` | No | `"0640"` | File mode of `/etc/msmtprc` |
 | `msmtp_logrotate_enabled` | No | `true` | Write `/etc/logrotate.d/msmtp` for `msmtp_logfile` |
-| `msmtp_logrotate_options` | No | monthly, keep 12, compressed | Body of that logrotate stanza |
+| `msmtp_logrotate_frequency` | No | `monthly` | How often the log rotates: `daily`, `weekly`, `monthly` or `yearly` |
+| `msmtp_logrotate_rotate` | No | `12` | Rotated logs kept |
+| `msmtp_logrotate_extra_options` | No | `[]` | Extra logrotate directives, e.g. `[dateext]` |
+| `msmtp_logrotate_options` | No | unset | **Deprecated** (removed in 3.0.0): the whole stanza body as a string, used in place of the three settings above |
 
 ## Behaviour
 
@@ -51,9 +54,9 @@ The role stops with a message if a required variable is empty.
 - Doesn't remove anything. Setting `msmtp_install_mta: false` leaves an
   installed `msmtp-mta` in place, and `msmtp_logrotate_enabled: false` leaves
   an existing `/etc/logrotate.d/msmtp`.
-- **logrotate role:** its `msmtp` service writes the same
-  `/etc/logrotate.d/msmtp`. Turn on one or the other, not both, or each run
-  rewrites the other's file.
+- `/etc/logrotate.d/msmtp` is written by the `logrotate` role's `entry` task,
+  which comes with the collection. The log is truncated in place
+  (`copytruncate`), so its owner and mode stay as they are.
 
 ## Dependencies
 

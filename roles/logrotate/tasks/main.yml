@@ -1,30 +1,83 @@
 ---
 # tasks file for logrotate
 
-- name: install logrotate
+- name: Install logrotate
   ansible.builtin.apt:
-    name:
-      - logrotate
-    state: present
+    name: logrotate
+    state: "{{ logrotate_package_state }}"
+  become: true
 
-- name: compute effective logrotate_services (defaults + logrotate_services_override)
+- name: Inspect /etc/logrotate.conf
+  ansible.builtin.include_tasks: inspect.yml
+  vars:
+    __logrotate_path: /etc/logrotate.conf
+
+- name: Forget any earlier diversion result
   ansible.builtin.set_fact:
-    logrotate_services_effective: "{{ logrotate_services | combine(logrotate_services_override) }}"
+    __logrotate_divert_add: {}
 
-- name: logrotate.d config files
-  ansible.builtin.template:
-    src: "{{ item.key }}.j2"
-    dest: "/etc/logrotate.d/{{ item.key }}"
-    owner: root
-    group: adm
-    mode: "0640"
-    validate: "logrotate -d %s"
-  loop: "{{ logrotate_services_effective | dict2items }}"
-  when: item.value
+- name: Global defaults in /etc/logrotate.conf
+  when: logrotate_global_manage | bool
+  block:
+    - name: Put Debian's logrotate.conf aside
+      ansible.builtin.include_tasks: divert.yml
+      vars:
+        __logrotate_divert_path: /etc/logrotate.conf
+        __logrotate_divert_state: present
+      when:
+        - __logrotate_owner | length > 0
+        - not __logrotate_diverted | bool
 
-- name: remove logrotate.d config files for disabled services
-  ansible.builtin.file:
-    path: "/etc/logrotate.d/{{ item.key }}"
-    state: absent
-  loop: "{{ logrotate_services_effective | dict2items }}"
-  when: not item.value
+    - name: Install /etc/logrotate.conf
+      ansible.builtin.template:
+        src: logrotate.conf.j2
+        dest: /etc/logrotate.conf
+        owner: root
+        group: root
+        mode: "0644"
+        validate: "{{ __logrotate_validate }}"
+      become: true
+  rescue:
+    # Never leave the host without a logrotate.conf
+    - name: Bring back Debian's logrotate.conf after the failure
+      ansible.builtin.include_tasks: divert.yml
+      vars:
+        __logrotate_divert_path: /etc/logrotate.conf
+        __logrotate_divert_state: absent
+      when:
+        - __logrotate_divert_add is defined
+        - __logrotate_divert_add is changed
+
+    - name: Fail with the original error
+      ansible.builtin.fail:
+        msg: "{{ ansible_failed_result.msg | default('') }} {{ ansible_failed_result.stderr | default('') }}"
+
+- name: Go back to Debian's logrotate.conf
+  when:
+    - not logrotate_global_manage | bool
+    - __logrotate_diverted | bool
+  block:
+    - name: Delete the managed logrotate.conf
+      ansible.builtin.file:
+        path: /etc/logrotate.conf
+        state: absent
+      become: true
+
+    - name: Bring back Debian's logrotate.conf
+      ansible.builtin.include_tasks: divert.yml
+      vars:
+        __logrotate_divert_path: /etc/logrotate.conf
+        __logrotate_divert_state: absent
+
+- name: Clean up old /etc/logrotate.d files
+  ansible.builtin.include_tasks: remove.yml
+  loop: "{{ logrotate_remove }}"
+  loop_control:
+    loop_var: __logrotate_remove_name
+
+- name: Write /etc/logrotate.d entries
+  ansible.builtin.include_tasks: entry.yml
+  loop: "{{ logrotate_entries }}"
+  loop_control:
+    loop_var: logrotate_entry
+    label: "{{ logrotate_entry.name }}"

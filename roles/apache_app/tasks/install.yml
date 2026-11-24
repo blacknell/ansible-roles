@@ -137,19 +137,37 @@
     - __apache_app_up is not changed
     - not ansible_check_mode
 
-- name: Install the logrotate config
-  ansible.builtin.template:
-    src: logrotate.j2
-    dest: /etc/logrotate.d/{{ apache_app_name }}
-    owner: root
-    group: root
-    mode: "0644"
-  become: true
-  when: apache_app_logrotate | bool
+# The app's own log files are bind-mounted as single files, so they're
+# truncated in place rather than replaced by a new file
+- name: Rotate the Apache and app logs
+  ansible.builtin.include_role:
+    name: blacknell.ansible_roles.logrotate
+    tasks_from: entry
+  vars:
+    logrotate_entry:
+      name: "{{ apache_app_name }}"
+      paths: >-
+        {{ [apache_app_dir ~ '/logs/apache/*.log']
+           + (apache_app_log_files | map('basename')
+              | map('regex_replace', '^', apache_app_dir ~ '/logs/') | list) }}
+      frequency: "{{ apache_app_logrotate_frequency }}"
+      rotate: "{{ apache_app_logrotate_rotate }}"
+      copytruncate: true
+      options: "{{ apache_app_logrotate_extra_options }}"
+      postrotate: docker exec {{ __apache_app_web }} apache2ctl graceful >/dev/null 2>&1 || true
+      state: "{{ 'present' if apache_app_logrotate | bool else 'absent' }}"
 
-- name: Remove the logrotate config
-  ansible.builtin.file:
-    path: /etc/logrotate.d/{{ apache_app_name }}
-    state: absent
-  become: true
-  when: not apache_app_logrotate | bool
+- name: Rotate the database backup log
+  ansible.builtin.include_role:
+    name: blacknell.ansible_roles.logrotate
+    tasks_from: entry
+  vars:
+    logrotate_entry:
+      name: "{{ apache_app_name }}-db-backup"
+      paths: ["{{ apache_app_db_backup_log }}"]
+      frequency: "{{ apache_app_db_backup_logrotate_frequency }}"
+      rotate: "{{ apache_app_db_backup_logrotate_rotate }}"
+      delaycompress: false
+      state: >-
+        {{ 'present' if (apache_app_logrotate | bool and apache_app_db | bool
+                         and apache_app_db_backup | bool) else 'absent' }}

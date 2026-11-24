@@ -1,0 +1,154 @@
+---
+argument_specs:
+  main:
+    short_description: Install logrotate, set its global defaults and write /etc/logrotate.d entries
+    options:
+      logrotate_package_state:
+        type: str
+        choices: [present, latest]
+        default: present
+        description: State of the logrotate package.
+      logrotate_global_manage:
+        type: bool
+        default: false
+        description: >-
+          Write /etc/logrotate.conf from the logrotate_global_* settings, diverting
+          Debian's copy to logrotate.conf.disabled. Turned back off, Debian's copy
+          is restored.
+      logrotate_global_frequency:
+        type: str
+        choices: [daily, weekly, monthly, yearly]
+        default: weekly
+        description: Default rotation interval.
+      logrotate_global_rotate:
+        type: int
+        default: 4
+        description: Default number of rotated logs kept.
+      logrotate_global_create:
+        type: bool
+        default: true
+        description: Create a new empty log after rotating, with the old one's owner and mode.
+      logrotate_global_compress:
+        type: bool
+        default: false
+        description: Compress rotated logs by default.
+      logrotate_global_dateext:
+        type: bool
+        default: false
+        description: Name rotated logs by date (syslog-20261124) instead of number (syslog.1).
+      logrotate_global_su:
+        type: str
+        default: ""
+        description: Global su directive, e.g. "root adm". Empty leaves it out.
+      logrotate_global_options:
+        type: list
+        elements: str
+        default: []
+        description: Extra global directives, one per line.
+      logrotate_entries:
+        type: list
+        elements: dict
+        default: []
+        description: Entries to write, each with the keys of logrotate_entry.
+      logrotate_remove:
+        type: list
+        elements: str
+        default: []
+        description: >-
+          Names in /etc/logrotate.d to clean up. A package's file is put back to the
+          package's version if it was changed; a file an entry has diverted is left
+          to that entry; anything else is deleted.
+
+  entry:
+    short_description: Write or remove one /etc/logrotate.d/<name> file
+    options:
+      logrotate_entry:
+        type: dict
+        required: true
+        description: The entry. Keys left out take the defaults listed here.
+        options:
+          name:
+            type: str
+            required: true
+            description: File name in /etc/logrotate.d.
+          paths:
+            type: list
+            elements: str
+            description: Logs or globs to rotate. Required when state is present.
+          frequency:
+            type: str
+            choices: [daily, weekly, monthly, yearly]
+            default: weekly
+            description: Rotation interval.
+          rotate:
+            type: int
+            default: 4
+            description: Rotated logs kept.
+          compress:
+            type: bool
+            default: true
+            description: Compress rotated logs.
+          delaycompress:
+            type: bool
+            default: true
+            description: Leave the newest rotated log uncompressed until the next run.
+          missingok:
+            type: bool
+            default: true
+            description: No error if a log is missing.
+          notifempty:
+            type: bool
+            default: true
+            description: Don't rotate an empty log.
+          sharedscripts:
+            type: bool
+            default: true
+            description: Run pre/postrotate once for all the paths, not once per log.
+          copytruncate:
+            type: bool
+            default: false
+            description: >-
+              Copy then truncate the log in place, for logs a process keeps open
+              (bind-mounted files, supervisor). Can't be used with create.
+          create:
+            type: str
+            default: ""
+            description: Mode, owner and group for the new log, e.g. "640 www-data adm". Empty inherits the global setting.
+          su:
+            type: str
+            default: ""
+            description: User and group to rotate as, e.g. "pi pi", for logs in folders root doesn't own.
+          dateext:
+            type: bool
+            description: true writes dateext, false nodateext. Leave out to inherit the global setting.
+          prerotate:
+            type: str
+            default: ""
+            description: Shell run before rotating.
+          postrotate:
+            type: str
+            default: ""
+            description: Shell run after rotating, e.g. a reload.
+          options:
+            type: list
+            elements: str
+            default: []
+            description: Extra directives, one per line.
+          body:
+            type: str
+            default: ""
+            description: >-
+              Everything between the braces, used as it is in place of all the
+              settings above. A fallback for configs the keys can't express.
+          replaces_package_file:
+            type: bool
+            default: false
+            description: >-
+              The name is a file a Debian package ships (e.g. fail2ban). Divert the
+              package's copy to <name>.disabled and write this one in its place.
+              With state absent, the package's copy is moved back.
+          state:
+            type: str
+            choices: [present, absent]
+            default: present
+            description: absent deletes the file (and restores a diverted package file).

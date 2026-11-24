@@ -73,6 +73,8 @@ volume's current name (`docker volume ls`), or Jenkins starts with an empty home
 | `jenkins_docker_backup_dir` | `<compose_dir>/backups` | Where the tarballs are written |
 | `jenkins_docker_backup_script` | `/usr/local/bin/jenkins-docker-backup` | Where the backup script is installed |
 | `jenkins_docker_backup_log` | `/var/log/jenkins-docker-backup.log` | Log appended to by scheduled and manual runs |
+| `jenkins_docker_backup_logrotate` | `true` | Rotate that log with `/etc/logrotate.d/jenkins-docker-backup` (written by the `logrotate` role's `entry` task). `false` removes the file |
+| `jenkins_docker_backup_logrotate_frequency` / `_rotate` | `monthly` / `6` | How often it rotates, and how many are kept |
 | `jenkins_docker_backup_image` | `debian:trixie-slim` | Image used to tar the volume (needs GNU tar) |
 | `jenkins_docker_backup_stamp_format` | `%Y%m%d-%H%M%S` | `date` format for the filename stamp (no spaces or slashes) |
 | `jenkins_docker_backup_keep_days` | `7` | Local tarballs older than this are deleted |

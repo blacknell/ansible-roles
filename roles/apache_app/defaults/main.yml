@@ -106,7 +106,12 @@ apache_app_db_backup_cron_minute: "45"
 
 # --- Logs ---------------------------------------------------------------------
 
-# /etc/logrotate.d/<apache_app_name> for the Apache and application logs
+# /etc/logrotate.d/<apache_app_name> for the Apache and application logs, and
+# /etc/logrotate.d/<apache_app_name>-db-backup for the backup log. Written by
+# the logrotate role's entry task, so they follow the same format as the rest.
 apache_app_logrotate: true
 apache_app_logrotate_frequency: weekly
 apache_app_logrotate_rotate: 12
+apache_app_logrotate_extra_options: []
+apache_app_db_backup_logrotate_frequency: monthly
+apache_app_db_backup_logrotate_rotate: 6

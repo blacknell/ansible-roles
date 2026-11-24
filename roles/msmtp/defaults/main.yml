@@ -40,16 +40,12 @@ msmtp_install_mta: true
 msmtp_config_group: adm
 msmtp_config_mode: "0640"
 
-# Rotate msmtp_logfile with /etc/logrotate.d/msmtp. Leave this off if the
-# logrotate role's `msmtp` service is on, since both write that file.
+# Rotate msmtp_logfile with /etc/logrotate.d/msmtp, written by the logrotate
+# role's entry task.
 msmtp_logrotate_enabled: true
-msmtp_logrotate_options: |
-  rotate 12
-  monthly
-  dateext
-  create 640 root adm
-  copytruncate
-  compress
-  missingok
-  notifempty
-  delaycompress
+msmtp_logrotate_frequency: monthly
+msmtp_logrotate_rotate: 12
+msmtp_logrotate_extra_options: []
+# Deprecated: the whole stanza body as a string. Still used when set, in place
+# of the three settings above; will be removed in 3.0.0.
+# msmtp_logrotate_options: ""

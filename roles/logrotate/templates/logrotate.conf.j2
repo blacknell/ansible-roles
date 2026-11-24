@@ -1,0 +1,23 @@
+# {{ ansible_managed }}
+# Global defaults for every file in /etc/logrotate.d that doesn't set its own.
+# Debian's original is kept as /etc/logrotate.conf.disabled.
+
+{{ logrotate_global_frequency }}
+rotate {{ logrotate_global_rotate }}
+{% if logrotate_global_su | length > 0 %}
+su {{ logrotate_global_su }}
+{% endif %}
+{% if logrotate_global_create | bool %}
+create
+{% endif %}
+{% if logrotate_global_dateext | bool %}
+dateext
+{% endif %}
+{% if logrotate_global_compress | bool %}
+compress
+{% endif %}
+{% for o in logrotate_global_options %}
+{{ o }}
+{% endfor %}
+
+include /etc/logrotate.d

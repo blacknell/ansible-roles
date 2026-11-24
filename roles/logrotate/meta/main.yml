@@ -1,6 +1,6 @@
 galaxy_info:
   author: Paul Blacknell
-  description: Installs logrotate and deploys a fixed set of logrotate.d configs for common services
+  description: Installs logrotate, sets its global defaults and writes /etc/logrotate.d entries for other roles and playbooks
 
   issue_tracker_url: https://github.com/blacknell/ansible-roles/issues
 

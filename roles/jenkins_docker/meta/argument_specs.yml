@@ -84,6 +84,19 @@ argument_specs:
         type: path
         default: /var/log/jenkins-docker-backup.log
         description: Log file appended to by scheduled and manual runs.
+      jenkins_docker_backup_logrotate:
+        type: bool
+        default: true
+        description: Write /etc/logrotate.d/jenkins-docker-backup for the backup log. false removes it.
+      jenkins_docker_backup_logrotate_frequency:
+        type: str
+        choices: [daily, weekly, monthly, yearly]
+        default: monthly
+        description: How often the backup log rotates.
+      jenkins_docker_backup_logrotate_rotate:
+        type: int
+        default: 6
+        description: Rotated backup logs kept.
       jenkins_docker_backup_image:
         type: str
         default: debian:trixie-slim

@@ -1,0 +1,34 @@
+---
+# Puts a package's file aside with dpkg-divert, or brings it back.
+#   __logrotate_divert_path:  the file, e.g. /etc/logrotate.d/fail2ban
+#   __logrotate_divert_state: present (move the package's copy to
+#                             <path>.disabled) or absent (move it back)
+# With state absent, delete your own file first: dpkg-divert won't move the
+# package's copy back over it.
+
+- name: Divert to .disabled {{ __logrotate_divert_path }}
+  ansible.builtin.command:
+    argv:
+      - dpkg-divert
+      - --local
+      - --rename
+      - --divert
+      - "{{ __logrotate_divert_path }}.disabled"
+      - --add
+      - "{{ __logrotate_divert_path }}"
+  register: __logrotate_divert_add
+  changed_when: __logrotate_divert_add.stdout is search('^Adding', multiline=true)
+  become: true
+  when: __logrotate_divert_state == 'present'
+
+- name: Remove the diversion of {{ __logrotate_divert_path }}
+  ansible.builtin.command:
+    argv:
+      - dpkg-divert
+      - --rename
+      - --remove
+      - "{{ __logrotate_divert_path }}"
+  register: __logrotate_divert_remove
+  changed_when: __logrotate_divert_remove.stdout is search('^Removing', multiline=true)
+  become: true
+  when: __logrotate_divert_state == 'absent'

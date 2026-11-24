@@ -1,0 +1,123 @@
+---
+# Writes (or removes) one /etc/logrotate.d/<name> file from `logrotate_entry`.
+# Call it from any role or playbook:
+#
+#   - ansible.builtin.include_role:
+#       name: blacknell.ansible_roles.logrotate
+#       tasks_from: entry
+#     vars:
+#       logrotate_entry:
+#         name: myapp
+#         paths: [/var/log/myapp.log]
+#
+# Keys and defaults are in meta/argument_specs.yml (entry) and the README.
+
+- name: Merge the logrotate entry with its defaults
+  ansible.builtin.set_fact:
+    __logrotate_e: "{{ __logrotate_entry_defaults | combine(logrotate_entry) }}"
+
+- name: Check the logrotate entry for {{ __logrotate_e.name }}
+  ansible.builtin.assert:
+    that:
+      - __logrotate_e.name is match('^[A-Za-z0-9_.-]+$')
+      - __logrotate_e.name is not search('\.(disabled|dpkg-[a-z]+)$')
+      - __logrotate_e.state in ['present', 'absent']
+      - __logrotate_e.state == 'absent' or (__logrotate_e.paths | default([]) | length > 0)
+      - __logrotate_e.frequency in ['daily', 'weekly', 'monthly', 'yearly']
+      - not (__logrotate_e.copytruncate | bool and __logrotate_e.create | string | length > 0)
+    fail_msg: >-
+      logrotate entry {{ __logrotate_e.name | default('(no name)') }}: name must be
+      a plain file name, state present or absent, paths a non-empty list when
+      present, frequency daily, weekly, monthly or yearly, and copytruncate and
+      create can't both be set.
+    quiet: true
+
+- name: Inspect /etc/logrotate.d/{{ __logrotate_e.name }}
+  ansible.builtin.include_tasks: inspect.yml
+  vars:
+    __logrotate_path: /etc/logrotate.d/{{ __logrotate_e.name }}
+
+- name: Write /etc/logrotate.d/{{ __logrotate_e.name }}
+  when: __logrotate_e.state == 'present'
+  block:
+    - name: Refuse to overwrite a package's file without diverting it
+      ansible.builtin.assert:
+        that: __logrotate_owner | length == 0 or __logrotate_diverted | bool
+        fail_msg: >-
+          /etc/logrotate.d/{{ __logrotate_e.name }} belongs to the
+          {{ __logrotate_owner }} package. Set replaces_package_file: true on
+          this entry to divert the package's copy and write this one in its
+          place, or pick another name (logrotate fails on two files that rotate
+          the same log).
+        quiet: true
+      when: not __logrotate_e.replaces_package_file | bool
+
+    - name: Forget any earlier diversion result
+      ansible.builtin.set_fact:
+        __logrotate_divert_add: {}
+
+    - name: Divert the package's copy and write this one
+      block:
+        - name: Put the package's copy aside
+          ansible.builtin.include_tasks: divert.yml
+          vars:
+            __logrotate_divert_path: /etc/logrotate.d/{{ __logrotate_e.name }}
+            __logrotate_divert_state: present
+          when:
+            - __logrotate_e.replaces_package_file | bool
+            - __logrotate_owner | length > 0
+            - not __logrotate_diverted | bool
+
+        - name: Install /etc/logrotate.d/{{ __logrotate_e.name }}
+          ansible.builtin.template:
+            src: entry.j2
+            dest: /etc/logrotate.d/{{ __logrotate_e.name }}
+            owner: root
+            group: root
+            mode: "0644"
+            validate: "{{ __logrotate_validate }}"
+          become: true
+      rescue:
+        # Only when this run diverted it: put the package's copy back
+        - name: Bring back the package's copy after the failure
+          ansible.builtin.include_tasks: divert.yml
+          vars:
+            __logrotate_divert_path: /etc/logrotate.d/{{ __logrotate_e.name }}
+            __logrotate_divert_state: absent
+          when:
+            - __logrotate_divert_add is defined
+            - __logrotate_divert_add is changed
+
+        - name: Fail with the original error
+          ansible.builtin.fail:
+            msg: "{{ ansible_failed_result.msg | default('') }} {{ ansible_failed_result.stderr | default('') }}"
+
+    - name: Check the whole logrotate config still loads
+      ansible.builtin.command:
+        argv: [logrotate, --debug, /etc/logrotate.conf]
+      register: __logrotate_check
+      changed_when: false
+      check_mode: false
+      become: true
+      failed_when: >-
+        __logrotate_check.stderr_lines
+        | select('search', '^error:')
+        | select('search', '/etc/logrotate.d/' ~ __logrotate_e.name ~ ':')
+        | list | length > 0
+
+- name: Remove /etc/logrotate.d/{{ __logrotate_e.name }}
+  when: __logrotate_e.state == 'absent'
+  block:
+    - name: Delete /etc/logrotate.d/{{ __logrotate_e.name }}
+      ansible.builtin.file:
+        path: /etc/logrotate.d/{{ __logrotate_e.name }}
+        state: absent
+      become: true
+      when: __logrotate_diverted | bool or __logrotate_owner | length == 0
+
+    - name: Bring back the package's copy
+      ansible.builtin.include_tasks: divert.yml
+      vars:
+        __logrotate_divert_path: /etc/logrotate.d/{{ __logrotate_e.name }}
+        __logrotate_divert_state: absent
+      when: __logrotate_diverted | bool

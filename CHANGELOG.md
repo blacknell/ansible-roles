@@ -2,11 +2,48 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 2.0.0
+
+The logrotate role no longer writes a fixed list of services. Debian's own logrotate files are left alone, and each role or playbook that creates a log writes that log's rotation through the logrotate role's new `entry` task. See the logrotate README, "Migrating from 1.x".
+
+### Removed
+
+- logrotate: `logrotate_services`, `logrotate_services_override`, every `logrotate_<service>_paths` and `logrotate_<service>_options`, and the 18 per-service templates. 1.x deployed `apache2`, `apt`, `cron`, `fail2ban` and `rsyslog` by default, over the files those Debian packages ship
+
+### Added
+
+- logrotate: `tasks_from: entry` writes or removes one `/etc/logrotate.d/<name>` from `logrotate_entry` (paths, frequency, rotate, copytruncate or create, su, pre/postrotate, extra options, state). Each file is checked with `logrotate -d` before it's installed, and the whole config is reloaded afterwards to catch a log rotated twice
+- logrotate: `replaces_package_file: true` on an entry diverts the package's file to `<name>.disabled` with `dpkg-divert` and writes the entry in its place; package upgrades then don't ask about it. Without it, writing over a package's file fails. A failed write puts the package's copy back
+- logrotate: `logrotate_entries`, entries to write from the role itself
+- logrotate: `logrotate_remove` cleans up names 1.x wrote: a package's file is put back to the package's version if it was changed, a file an entry has diverted is left to that entry, anything else is deleted
+- logrotate: `logrotate_global_manage` and `logrotate_global_*` (frequency, rotate, create, compress, dateext, su, options) write `/etc/logrotate.conf`, diverting Debian's copy. Off by default; the defaults are Debian's own values
+- apache_app: `apache_app_logrotate_extra_options`, `apache_app_db_backup_logrotate_frequency` (default `monthly`) and `apache_app_db_backup_logrotate_rotate` (default `6`)
+- msmtp: `msmtp_logrotate_frequency` (default `monthly`), `msmtp_logrotate_rotate` (default `12`) and `msmtp_logrotate_extra_options`
+- jenkins_docker: rotates its backup log, which nothing rotated before: `/etc/logrotate.d/jenkins-docker-backup`, with `jenkins_docker_backup_logrotate` (default `true`), `_frequency` (`monthly`) and `_rotate` (`6`)
+
+### Changed
+
+- apache_app, msmtp: write their logrotate files with the logrotate role's `entry` task, so they need the logrotate role (it's in the collection)
+- apache_app: the backup log moves from `/etc/logrotate.d/<name>` to its own `/etc/logrotate.d/<name>-db-backup`
+- msmtp: drops `dateext` and `create` from its default stanza (the log is truncated in place, so `create` did nothing). Set `logrotate_global_dateext: true` on the logrotate role, or `msmtp_logrotate_extra_options: [dateext]`, for date stamps
+
+### Deprecated
+
+- msmtp: `msmtp_logrotate_options` (the whole stanza as a string) still works, with a warning, and will be removed in 3.0.0
+
+### Fixed
+
+- apache_app: the 1.20.0 docs and argument spec still gave the old `daily` and `14` defaults
+
 ## 1.20.0
 
 ### Added
 
-- apache_app: `apache_app_logrotate_frequency` sets how often the Apache and app logs rotate (`daily`, `weekly`, `monthly` or `yearly`). Default `daily`, as before
+- apache_app: `apache_app_logrotate_frequency` sets how often the Apache and app logs rotate (`daily`, `weekly`, `monthly` or `yearly`)
+
+### Changed
+
+- apache_app: logs now rotate weekly with 12 kept (was daily with 14). Set `apache_app_logrotate_frequency: daily` and `apache_app_logrotate_rotate: 14` to keep the old behaviour
 
 ## 1.19.1
 

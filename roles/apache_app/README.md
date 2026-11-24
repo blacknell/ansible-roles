@@ -111,9 +111,14 @@ The first vhost Apache sees is a built-in default that returns 404 for unknown n
 
 | Variable | Default | Description |
 |---|---|---|
-| `apache_app_logrotate` | `true` | `/etc/logrotate.d/<name>` for the Apache and app logs (`copytruncate`, since app log files are bind-mounted) and the backup log |
-| `apache_app_logrotate_frequency` | `daily` | How often the Apache and app logs rotate: `daily`, `weekly`, `monthly` or `yearly` |
-| `apache_app_logrotate_rotate` | `14` | Rotated logs kept |
+| `apache_app_logrotate` | `true` | `/etc/logrotate.d/<name>` for the Apache and app logs (`copytruncate`, since app log files are bind-mounted) and `/etc/logrotate.d/<name>-db-backup` for the backup log. `false` removes both |
+| `apache_app_logrotate_frequency` | `weekly` | How often the Apache and app logs rotate: `daily`, `weekly`, `monthly` or `yearly` |
+| `apache_app_logrotate_rotate` | `12` | Rotated Apache and app logs kept |
+| `apache_app_logrotate_extra_options` | `[]` | Extra logrotate directives, e.g. `[dateext]` |
+| `apache_app_db_backup_logrotate_frequency` | `monthly` | How often the backup log rotates |
+| `apache_app_db_backup_logrotate_rotate` | `6` | Rotated backup logs kept |
+
+Both files are written by the `logrotate` role's `entry` task (see that role's README), so this role needs the `logrotate` role, which comes with the collection.
 
 ## Entry Points
 

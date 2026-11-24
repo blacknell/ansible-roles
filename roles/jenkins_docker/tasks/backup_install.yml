@@ -23,6 +23,21 @@
     modification_time: preserve
   become: true
 
+# Truncated in place, so the file stays owned by {{ jenkins_docker_user }}
+- name: Rotate the backup log
+  ansible.builtin.include_role:
+    name: blacknell.ansible_roles.logrotate
+    tasks_from: entry
+  vars:
+    logrotate_entry:
+      name: jenkins-docker-backup
+      paths: ["{{ jenkins_docker_backup_log }}"]
+      frequency: "{{ jenkins_docker_backup_logrotate_frequency }}"
+      rotate: "{{ jenkins_docker_backup_logrotate_rotate }}"
+      copytruncate: true
+      delaycompress: false
+      state: "{{ 'present' if jenkins_docker_backup_logrotate | bool else 'absent' }}"
+
 - name: Install the backup script
   ansible.builtin.template:
     src: jenkins-docker-backup.sh.j2

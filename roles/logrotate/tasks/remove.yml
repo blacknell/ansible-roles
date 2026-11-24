@@ -1,0 +1,79 @@
+---
+# Cleans up one name from logrotate_remove (__logrotate_remove_name):
+# - diverted by an entry: left alone, since an entry (replaces_package_file)
+#   now owns it. Use the entry's state: absent to undo it
+# - shipped by a package and changed: put back to the package's version
+# - shipped by a package and unchanged: left alone
+# - anything else: deleted
+
+- name: Inspect /etc/logrotate.d/{{ __logrotate_remove_name }}
+  ansible.builtin.include_tasks: inspect.yml
+  vars:
+    __logrotate_path: /etc/logrotate.d/{{ __logrotate_remove_name }}
+
+- name: Leave a diverted file to its entry
+  ansible.builtin.debug:
+    msg: >-
+      /etc/logrotate.d/{{ __logrotate_remove_name }} is diverted, so an entry with
+      replaces_package_file owns it; leaving it. Set that entry to state: absent
+      to go back to the package's file.
+  when: __logrotate_diverted | bool
+
+- name: Delete /etc/logrotate.d/{{ __logrotate_remove_name }}
+  ansible.builtin.file:
+    path: /etc/logrotate.d/{{ __logrotate_remove_name }}
+    state: absent
+  become: true
+  when:
+    - not __logrotate_diverted | bool
+    - __logrotate_owner | length == 0
+
+- name: Put back the package's version of {{ __logrotate_remove_name }}
+  when:
+    - not __logrotate_diverted | bool
+    - __logrotate_owner | length > 0
+  block:
+    - name: Read the package's checksum for {{ __logrotate_remove_name }}
+      ansible.builtin.command:
+        argv: [dpkg-query, -W, "-f=${Conffiles}\n", "{{ __logrotate_owner }}"]
+      register: __logrotate_conffiles
+      changed_when: false
+      check_mode: false
+
+    - name: Checksum /etc/logrotate.d/{{ __logrotate_remove_name }}
+      ansible.builtin.stat:
+        path: /etc/logrotate.d/{{ __logrotate_remove_name }}
+        checksum_algorithm: md5
+      register: __logrotate_remove_stat
+
+    - name: Decide whether the file differs from the package's
+      ansible.builtin.set_fact:
+        __logrotate_restore: >-
+          {{ not __logrotate_remove_stat.stat.exists
+             or (__logrotate_conffiles.stdout_lines
+                 | select('search', '^ /etc/logrotate.d/' ~ __logrotate_remove_name ~ ' ')
+                 | map('split') | map(attribute=1) | first | default(''))
+                != __logrotate_remove_stat.stat.checksum }}
+
+    - name: Delete the changed copy
+      ansible.builtin.file:
+        path: /etc/logrotate.d/{{ __logrotate_remove_name }}
+        state: absent
+      become: true
+      when: __logrotate_restore | bool
+
+    - name: Reinstall the package to restore {{ __logrotate_remove_name }}
+      ansible.builtin.command:
+        argv:
+          - apt-get
+          - install
+          - --reinstall
+          - --yes
+          - -o
+          - Dpkg::Options::=--force-confmiss
+          - "{{ __logrotate_owner }}"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      changed_when: true
+      become: true
+      when: __logrotate_restore | bool

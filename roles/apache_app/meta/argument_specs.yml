@@ -202,16 +202,32 @@ argument_specs:
       apache_app_logrotate:
         type: bool
         default: true
-        description: Install a logrotate config for the Apache and app logs.
+        description: >-
+          Write /etc/logrotate.d/<name> for the Apache and app logs, and
+          <name>-db-backup for the backup log. false removes them.
       apache_app_logrotate_frequency:
         type: str
         choices: [daily, weekly, monthly, yearly]
-        default: daily
-        description: How often logrotate rotates the Apache and app logs.
+        default: weekly
+        description: How often the Apache and app logs rotate.
       apache_app_logrotate_rotate:
         type: int
-        default: 14
-        description: Rotated logs kept (at daily rotation, 14 is two weeks).
+        default: 12
+        description: Rotated Apache and app logs kept.
+      apache_app_logrotate_extra_options:
+        type: list
+        elements: str
+        default: []
+        description: Extra logrotate directives for the Apache and app logs, e.g. [dateext].
+      apache_app_db_backup_logrotate_frequency:
+        type: str
+        choices: [daily, weekly, monthly, yearly]
+        default: monthly
+        description: How often the backup log rotates.
+      apache_app_db_backup_logrotate_rotate:
+        type: int
+        default: 6
+        description: Rotated backup logs kept.
 
   db_import:
     short_description: Import a .sql or .sql.gz dump into the app's database

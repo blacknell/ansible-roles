@@ -66,7 +66,23 @@ argument_specs:
       msmtp_logrotate_enabled:
         type: bool
         default: true
-        description: Write /etc/logrotate.d/msmtp. Turn off if the logrotate role's msmtp service is on.
+        description: Write /etc/logrotate.d/msmtp for msmtp_logfile.
+      msmtp_logrotate_frequency:
+        type: str
+        choices: [daily, weekly, monthly, yearly]
+        default: monthly
+        description: How often the msmtp log rotates.
+      msmtp_logrotate_rotate:
+        type: int
+        default: 12
+        description: Rotated msmtp logs kept.
+      msmtp_logrotate_extra_options:
+        type: list
+        elements: str
+        default: []
+        description: Extra logrotate directives, e.g. [dateext].
       msmtp_logrotate_options:
         type: str
-        description: Body of the logrotate stanza for msmtp_logfile.
+        description: >-
+          Deprecated, removed in 3.0.0. The whole stanza body; when set it is used
+          in place of the frequency, rotate and extra options settings.

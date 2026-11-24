@@ -2,5 +2,24 @@
 - name: Test logrotate role
   hosts: localhost
   remote_user: root
+  vars:
+    logrotate_entries:
+      - name: logrotate-role-test
+        paths: [/var/log/logrotate-role-test.log]
+        frequency: monthly
+        rotate: 2
   roles:
     - logrotate
+
+- name: Remove the test entry
+  hosts: localhost
+  remote_user: root
+  tasks:
+    - name: Remove /etc/logrotate.d/logrotate-role-test
+      ansible.builtin.include_role:
+        name: logrotate
+        tasks_from: entry
+      vars:
+        logrotate_entry:
+          name: logrotate-role-test
+          state: absent

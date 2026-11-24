@@ -1,0 +1,37 @@
+# {{ ansible_managed }}
+{% for p in __logrotate_e.paths %}
+{{ ('"' ~ p ~ '"') if ' ' in p else p }}
+{% endfor %}
+{
+{% if __logrotate_e.body | length > 0 %}
+{{ __logrotate_e.body | trim | indent(4, first=true) }}
+{% else %}
+    {{ __logrotate_e.frequency }}
+    rotate {{ __logrotate_e.rotate }}
+{% for flag in ['missingok', 'notifempty', 'compress', 'delaycompress', 'copytruncate', 'sharedscripts'] if __logrotate_e[flag] | bool %}
+    {{ flag }}
+{% endfor %}
+{% if __logrotate_e.dateext is not none %}
+    {{ 'dateext' if __logrotate_e.dateext | bool else 'nodateext' }}
+{% endif %}
+{% if __logrotate_e.create | string | length > 0 %}
+    create {{ __logrotate_e.create }}
+{% endif %}
+{% if __logrotate_e.su | length > 0 %}
+    su {{ __logrotate_e.su }}
+{% endif %}
+{% for o in __logrotate_e.options %}
+    {{ o }}
+{% endfor %}
+{% if __logrotate_e.prerotate | length > 0 %}
+    prerotate
+{{ __logrotate_e.prerotate | trim | indent(8, first=true) }}
+    endscript
+{% endif %}
+{% if __logrotate_e.postrotate | length > 0 %}
+    postrotate
+{{ __logrotate_e.postrotate | trim | indent(8, first=true) }}
+    endscript
+{% endif %}
+{% endif %}
+}

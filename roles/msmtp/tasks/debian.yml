@@ -28,13 +28,27 @@
   # The file holds the SMTP password, so keep it out of --diff output
   diff: false
 
+- name: Warn about msmtp_logrotate_options
+  ansible.builtin.debug:
+    msg: >-
+      msmtp_logrotate_options is deprecated and will be removed in 3.0.0. Use
+      msmtp_logrotate_frequency, msmtp_logrotate_rotate and
+      msmtp_logrotate_extra_options instead.
+  when: msmtp_logrotate_options | default('') | length > 0
+
 - name: Rotate the msmtp log
   when:
     - msmtp_logrotate_enabled | bool
     - msmtp_logfile | length > 0
-  ansible.builtin.template:
-    src: logrotate.j2
-    dest: /etc/logrotate.d/msmtp
-    owner: root
-    group: root
-    mode: "0644"
+  ansible.builtin.include_role:
+    name: blacknell.ansible_roles.logrotate
+    tasks_from: entry
+  vars:
+    logrotate_entry:
+      name: msmtp
+      paths: ["{{ msmtp_logfile }}"]
+      frequency: "{{ msmtp_logrotate_frequency }}"
+      rotate: "{{ msmtp_logrotate_rotate }}"
+      copytruncate: true
+      options: "{{ msmtp_logrotate_extra_options }}"
+      body: "{{ msmtp_logrotate_options | default('') }}"

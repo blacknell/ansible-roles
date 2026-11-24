@@ -52,6 +52,10 @@ jenkins_docker_backup_dir: "{{ jenkins_docker_compose_dir }}/backups"
 # Backup script and log
 jenkins_docker_backup_script: /usr/local/bin/jenkins-docker-backup
 jenkins_docker_backup_log: /var/log/jenkins-docker-backup.log
+# /etc/logrotate.d/jenkins-docker-backup for the backup log
+jenkins_docker_backup_logrotate: true
+jenkins_docker_backup_logrotate_frequency: monthly
+jenkins_docker_backup_logrotate_rotate: 6
 
 # Image used to tar the volume (needs GNU tar)
 jenkins_docker_backup_image: debian:trixie-slim

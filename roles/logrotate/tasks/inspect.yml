@@ -1,0 +1,29 @@
+---
+# Sets __logrotate_owner (the Debian package that ships __logrotate_path, or
+# "") and __logrotate_diverted (whether it is diverted). Read-only, so it also
+# runs in check mode.
+
+- name: Find the package that ships {{ __logrotate_path }}
+  ansible.builtin.command:
+    argv: [dpkg-query, -S, "{{ __logrotate_path }}"]
+  register: __logrotate_dpkg_s
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Look for a diversion of {{ __logrotate_path }}
+  ansible.builtin.command:
+    argv: [dpkg-divert, --list, "{{ __logrotate_path }}"]
+  register: __logrotate_dpkg_divert
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Record who owns {{ __logrotate_path }}
+  ansible.builtin.set_fact:
+    __logrotate_owner: >-
+      {{ (__logrotate_dpkg_s.stdout_lines
+          | reject('search', 'diversion')
+          | select('search', ': ' ~ __logrotate_path ~ '$')
+          | map('split', ':') | map('first') | first | default('')) | trim }}
+    __logrotate_diverted: "{{ __logrotate_dpkg_divert.stdout | trim | length > 0 }}"
