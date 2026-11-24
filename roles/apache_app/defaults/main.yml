@@ -108,5 +108,5 @@ apache_app_db_backup_cron_minute: "45"
 
 # /etc/logrotate.d/<apache_app_name> for the Apache and application logs
 apache_app_logrotate: true
-apache_app_logrotate_frequency: daily
-apache_app_logrotate_rotate: 14
+apache_app_logrotate_frequency: weekly
+apache_app_logrotate_rotate: 12
