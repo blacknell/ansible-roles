@@ -4,7 +4,7 @@
 {{ apache_app_dir }}/logs/{{ f | basename }}
 {% endfor %}
 {
-    daily
+    {{ apache_app_logrotate_frequency }}
     rotate {{ apache_app_logrotate_rotate }}
     missingok
     notifempty

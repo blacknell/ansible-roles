@@ -2,6 +2,12 @@
 
 All notable changes to the `blacknell.ansible_roles` collection.
 
+## 1.20.0
+
+### Added
+
+- apache_app: `apache_app_logrotate_frequency` sets how often the Apache and app logs rotate (`daily`, `weekly`, `monthly` or `yearly`). Default `daily`, as before
+
 ## 1.19.1
 
 ### Fixed

@@ -112,7 +112,8 @@ The first vhost Apache sees is a built-in default that returns 404 for unknown n
 | Variable | Default | Description |
 |---|---|---|
 | `apache_app_logrotate` | `true` | `/etc/logrotate.d/<name>` for the Apache and app logs (`copytruncate`, since app log files are bind-mounted) and the backup log |
-| `apache_app_logrotate_rotate` | `14` | Daily logs kept |
+| `apache_app_logrotate_frequency` | `daily` | How often the Apache and app logs rotate: `daily`, `weekly`, `monthly` or `yearly` |
+| `apache_app_logrotate_rotate` | `14` | Rotated logs kept |
 
 ## Entry Points
 

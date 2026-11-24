@@ -203,10 +203,15 @@ argument_specs:
         type: bool
         default: true
         description: Install a logrotate config for the Apache and app logs.
+      apache_app_logrotate_frequency:
+        type: str
+        choices: [daily, weekly, monthly, yearly]
+        default: daily
+        description: How often logrotate rotates the Apache and app logs.
       apache_app_logrotate_rotate:
         type: int
         default: 14
-        description: Daily logs kept.
+        description: Rotated logs kept (at daily rotation, 14 is two weeks).
 
   db_import:
     short_description: Import a .sql or .sql.gz dump into the app's database
